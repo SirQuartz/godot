@@ -20,9 +20,7 @@
 		if err == OK: # If not, something went wrong with the file loading
 		    # Look for the display/width pair, and default to 1024 if missing
 		    var screen_width = config.get_value("display", "width", 1024)
-		    # Store a variable if and only if it hasn't been defined yet
-		    if not config.has_section_key("audio", "mute"):
-		        config.set_value("audio", "mute", false)
+			config.set_value("audio", "mute", false)
 		    # Save the changes by overwriting the previous file
 		    config.save("user://settings.cfg")
 		[/gdscript]
@@ -33,11 +31,7 @@
 		{
 		    // Look for the display/width pair, and default to 1024 if missing
 		    int screenWidth = (int)config.GetValue("display", "width", 1024);
-		    // Store a variable if and only if it hasn't been defined yet
-		    if (!config.HasSectionKey("audio", "mute"))
-		    {
-		        config.SetValue("audio", "mute", false);
-		    }
+			config.SetValue("audio", "mute", false);
 		    // Save the changes by overwriting the previous file
 		    config.Save("user://settings.cfg");
 		}
