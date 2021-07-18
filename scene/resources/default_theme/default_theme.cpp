@@ -143,7 +143,7 @@ void fill_default_theme(Ref<Theme> &theme, const Ref<Font> &default_font, const 
 
 	// Font Colors
 
-	Color control_font_color = Color(0.88, 0.88, 0.88);
+	Color control_font_color =  Color(0.55, 0.55, 0.55);
 	Color control_font_lower_color = Color(0.63, 0.63, 0.63);
 	Color control_font_low_color = Color(0.69, 0.69, 0.69);
 	Color control_font_hover_color = Color(0.94, 0.94, 0.94);
@@ -411,6 +411,7 @@ void fill_default_theme(Ref<Theme> &theme, const Ref<Font> &default_font, const 
 	theme->set_color("font_color", "LineEdit", control_font_color);
 	theme->set_color("font_selected_color", "LineEdit", Color(0, 0, 0));
 	theme->set_color("font_uneditable_color", "LineEdit", Color(control_font_color.r, control_font_color.g, control_font_color.b, 0.5f));
+
 	theme->set_color("font_outline_color", "LineEdit", Color(1, 1, 1));
 	theme->set_color("caret_color", "LineEdit", control_font_hover_color);
 	theme->set_color("selection_color", "LineEdit", control_selection_color);

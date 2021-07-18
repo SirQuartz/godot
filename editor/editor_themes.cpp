@@ -1189,7 +1189,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	style_tooltip->set_default_margin(SIDE_TOP, default_margin_size * EDSCALE * 0.5);
 	style_tooltip->set_default_margin(SIDE_RIGHT, default_margin_size * EDSCALE);
 	style_tooltip->set_default_margin(SIDE_BOTTOM, default_margin_size * EDSCALE * 0.5);
-	style_tooltip->set_bg_color(mono_color.inverted() * Color(1, 1, 1, 0.8));
+	style_tooltip->set_bg_color(mono_color.inverted());
 	style_tooltip->set_border_width_all(0);
 	theme->set_color("font_color", "TooltipLabel", font_hover_color);
 	theme->set_color("font_color_shadow", "TooltipLabel", Color(0, 0, 0, 0));
