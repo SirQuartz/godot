@@ -224,6 +224,20 @@ void FileSystemDock::_update_tree(const Vector<String> &p_uncollapsed_paths, boo
 	favorites->set_collapsed(p_uncollapsed_paths.find("Favorites") < 0);
 
 	Vector<String> favorite_paths = EditorSettings::get_singleton()->get_favorites();
+
+	DirAccessRef da = DirAccess::create(DirAccess::ACCESS_RESOURCES);
+	bool fav_changed = false;
+	for (int i = favorite_paths.size() - 1; i >= 0; i--) {
+		if (da->dir_exists(favorite_paths[i]) || da->file_exists(favorite_paths[i])) {
+			continue;
+		}
+		favorite_paths.remove_at(i);
+		fav_changed = true;
+	}
+	if (fav_changed) {
+		EditorSettings::get_singleton()->set_favorites(favorite_paths);
+	}
+
 	for (int i = 0; i < favorite_paths.size(); i++) {
 		String fave = favorite_paths[i];
 		if (!fave.begins_with("res://")) {
@@ -1414,17 +1428,17 @@ void FileSystemDock::_make_dir_confirm() {
 		directory = directory.get_base_dir();
 	}
 
-	if (EditorFileSystem::get_singleton()->get_filesystem_path(directory + dir_name)) {
+	print_verbose("Making folder " + dir_name + " in " + directory);
+	DirAccessRef da = DirAccess::create(DirAccess::ACCESS_RESOURCES);
+	Error err = da->change_dir(directory);
+	ERR_FAIL_COND_MSG(err != OK, "Cannot open directory '" + directory + "'.");
+
+	if (da->dir_exists(dir_name)) {
 		EditorNode::get_singleton()->show_warning(TTR("Could not create folder. File with that name already exists."));
 		return;
 	}
 
-	print_verbose("Making folder " + dir_name + " in " + directory);
-	DirAccessRef da = DirAccess::create(DirAccess::ACCESS_RESOURCES);
-	Error err = da->change_dir(directory);
-	if (err == OK) {
-		err = da->make_dir(dir_name);
-	}
+	err = da->make_dir(dir_name);
 
 	if (err == OK) {
 		print_verbose("FileSystem: calling rescan.");

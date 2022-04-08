@@ -79,7 +79,7 @@ void SceneTreeDock::input(const Ref<InputEvent> &p_event) {
 	}
 }
 
-void SceneTreeDock::unhandled_key_input(const Ref<InputEvent> &p_event) {
+void SceneTreeDock::shortcut_input(const Ref<InputEvent> &p_event) {
 	ERR_FAIL_COND(p_event.is_null());
 
 	if (get_viewport()->gui_get_focus_owner() && get_viewport()->gui_get_focus_owner()->is_text_field()) {
@@ -2012,7 +2012,7 @@ void SceneTreeDock::_delete_confirm(bool p_cut) {
 
 	bool entire_scene = false;
 
-	for (Node *E : remove_list) {
+	for (const Node *E : remove_list) {
 		if (E == edited_scene) {
 			entire_scene = true;
 		}
@@ -2075,8 +2075,8 @@ void SceneTreeDock::_delete_confirm(bool p_cut) {
 
 	_push_item(nullptr);
 
-	// Fixes the EditorHistory from still offering deleted notes
-	EditorHistory *editor_history = EditorNode::get_singleton()->get_editor_history();
+	// Fixes the EditorSelectionHistory from still offering deleted notes
+	EditorSelectionHistory *editor_history = EditorNode::get_singleton()->get_editor_selection_history();
 	editor_history->cleanup_history();
 	InspectorDock::get_singleton()->call("_prepare_history");
 }
@@ -2547,10 +2547,10 @@ void SceneTreeDock::_files_dropped(Vector<String> p_files, NodePath p_to, int p_
 			property_drop_node = node;
 			resource_drop_path = res_path;
 
-			bool capitalize = bool(EDITOR_GET("interface/inspector/capitalize_properties"));
+			const EditorPropertyNameProcessor::Style style = InspectorDock::get_singleton()->get_property_name_style();
 			menu_properties->clear();
 			for (const String &p : valid_properties) {
-				menu_properties->add_item(capitalize ? p.capitalize() : p);
+				menu_properties->add_item(EditorPropertyNameProcessor::get_singleton()->process_name(p, style));
 				menu_properties->set_item_metadata(-1, p);
 			}
 
@@ -3476,7 +3476,7 @@ SceneTreeDock::SceneTreeDock(Node *p_scene_root, EditorSelection *p_editor_selec
 	add_child(quick_open);
 	quick_open->connect("quick_open", callable_mp(this, &SceneTreeDock::_quick_open));
 
-	set_process_unhandled_key_input(true);
+	set_process_shortcut_input(true);
 
 	delete_dialog = memnew(ConfirmationDialog);
 	add_child(delete_dialog);

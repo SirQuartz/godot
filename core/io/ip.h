@@ -38,7 +38,6 @@ struct _IP_ResolverPrivate;
 
 class IP : public Object {
 	GDCLASS(IP, Object);
-	OBJ_CATEGORY("Networking");
 
 public:
 	enum ResolverStatus {
@@ -63,7 +62,7 @@ public:
 	typedef int ResolverID;
 
 private:
-	_IP_ResolverPrivate *resolver;
+	_IP_ResolverPrivate *resolver = nullptr;
 
 protected:
 	static IP *singleton;

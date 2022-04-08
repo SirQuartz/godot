@@ -92,6 +92,21 @@ Object *GDScriptNativeClass::instantiate() {
 	return ClassDB::instantiate(name);
 }
 
+Variant GDScriptNativeClass::callp(const StringName &p_method, const Variant **p_args, int p_argcount, Callable::CallError &r_error) {
+	if (p_method == SNAME("new")) {
+		// Constructor.
+		return Object::callp(p_method, p_args, p_argcount, r_error);
+	}
+	MethodBind *method = ClassDB::get_method(name, p_method);
+	if (method) {
+		// Native static method.
+		return method->call(nullptr, p_args, p_argcount, r_error);
+	}
+
+	r_error.error = Callable::CallError::CALL_ERROR_INVALID_METHOD;
+	return Variant();
+}
+
 GDScriptFunction *GDScript::_super_constructor(GDScript *p_script) {
 	if (p_script->initializer) {
 		return p_script->initializer;
@@ -824,7 +839,7 @@ Error GDScript::reload(bool p_keep_state) {
 
 // Loading a template, don't parse.
 #ifdef TOOLS_ENABLED
-	if (basedir.begins_with(EditorSettings::get_singleton()->get_project_script_templates_dir())) {
+	if (EditorSettings::get_singleton() && basedir.begins_with(EditorSettings::get_singleton()->get_project_script_templates_dir())) {
 		return OK;
 	}
 #endif
