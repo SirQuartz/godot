@@ -41,7 +41,9 @@ public:
 	virtual ~OpenXRHTCViveTrackerExtension() override;
 
 	bool is_available();
+
 	virtual bool on_event_polled(const XrEventDataBuffer &event) override;
+	virtual bool is_path_supported(const String &p_path) override;
 
 private:
 	static OpenXRHTCViveTrackerExtension *singleton;
@@ -49,4 +51,4 @@ private:
 	bool available = false;
 };
 
-#endif // !OPENXR_HTC_VIVE_TRACKER_EXTENSION_H
+#endif // OPENXR_HTC_VIVE_TRACKER_EXTENSION_H

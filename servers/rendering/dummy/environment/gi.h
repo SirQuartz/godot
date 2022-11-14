@@ -62,6 +62,9 @@ public:
 	virtual void voxel_gi_set_energy(RID p_voxel_gi, float p_range) override {}
 	virtual float voxel_gi_get_energy(RID p_voxel_gi) const override { return 0.0; }
 
+	virtual void voxel_gi_set_baked_exposure_normalization(RID p_voxel_gi, float p_baked_exposure) override {}
+	virtual float voxel_gi_get_baked_exposure_normalization(RID p_voxel_gi) const override { return 1.0; }
+
 	virtual void voxel_gi_set_bias(RID p_voxel_gi, float p_range) override {}
 	virtual float voxel_gi_get_bias(RID p_voxel_gi) const override { return 0.0; }
 
@@ -74,12 +77,9 @@ public:
 	virtual void voxel_gi_set_use_two_bounces(RID p_voxel_gi, bool p_enable) override {}
 	virtual bool voxel_gi_is_using_two_bounces(RID p_voxel_gi) const override { return false; }
 
-	virtual void voxel_gi_set_anisotropy_strength(RID p_voxel_gi, float p_strength) override {}
-	virtual float voxel_gi_get_anisotropy_strength(RID p_voxel_gi) const override { return 0; }
-
 	virtual uint32_t voxel_gi_get_version(RID p_voxel_gi) const override { return 0; }
 };
 
 } // namespace RendererDummy
 
-#endif // !GI_DUMMY_H
+#endif // GI_DUMMY_H

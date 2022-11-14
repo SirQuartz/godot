@@ -28,8 +28,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef GODOT_JAVA_GODOT_VIEW_WRAPPER_H
-#define GODOT_JAVA_GODOT_VIEW_WRAPPER_H
+#ifndef JAVA_GODOT_VIEW_WRAPPER_H
+#define JAVA_GODOT_VIEW_WRAPPER_H
 
 #include <android/log.h>
 #include <jni.h>
@@ -50,6 +50,9 @@ private:
 public:
 	GodotJavaViewWrapper(jobject godot_view);
 
+	bool can_update_pointer_icon() const;
+	bool can_capture_pointer() const;
+
 	void request_pointer_capture();
 	void release_pointer_capture();
 	void set_pointer_icon(int pointer_type);
@@ -57,4 +60,4 @@ public:
 	~GodotJavaViewWrapper();
 };
 
-#endif // GODOT_JAVA_GODOT_VIEW_WRAPPER_H
+#endif // JAVA_GODOT_VIEW_WRAPPER_H

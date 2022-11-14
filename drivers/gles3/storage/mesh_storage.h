@@ -37,6 +37,7 @@
 #include "core/templates/rid_owner.h"
 #include "core/templates/self_list.h"
 #include "servers/rendering/storage/mesh_storage.h"
+#include "servers/rendering/storage/utilities.h"
 
 #include "platform_config.h"
 #ifndef OPENGL_INCLUDE_H
@@ -74,7 +75,7 @@ struct Mesh {
 		// Cache vertex arrays so they can be created
 		struct Version {
 			uint32_t input_mask = 0;
-			GLuint vertex_array;
+			GLuint vertex_array = 0;
 
 			Attrib attribs[RS::ARRAY_MAX];
 		};
@@ -91,7 +92,7 @@ struct Mesh {
 			float edge_length = 0.0;
 			uint32_t index_count = 0;
 			uint32_t index_buffer_size = 0;
-			GLuint index_buffer;
+			GLuint index_buffer = 0;
 		};
 
 		LOD *lods = nullptr;
@@ -126,7 +127,7 @@ struct Mesh {
 	RID shadow_mesh;
 	HashSet<Mesh *> shadow_owners;
 
-	RendererStorage::Dependency dependency;
+	Dependency dependency;
 };
 
 /* Mesh Instance */
@@ -174,12 +175,12 @@ struct MultiMesh {
 	bool *data_cache_dirty_regions = nullptr;
 	uint32_t data_cache_used_dirty_regions = 0;
 
-	GLuint buffer;
+	GLuint buffer = 0;
 
 	bool dirty = false;
 	MultiMesh *dirty_list = nullptr;
 
-	RendererStorage::Dependency dependency;
+	Dependency dependency;
 };
 
 struct Skeleton {
@@ -194,7 +195,7 @@ struct Skeleton {
 
 	uint64_t version = 1;
 
-	RendererStorage::Dependency dependency;
+	Dependency dependency;
 };
 
 class MeshStorage : public RendererMeshStorage {
@@ -324,13 +325,12 @@ public:
 		return s->index_count ? s->index_count : s->vertex_count;
 	}
 
-	_FORCE_INLINE_ uint32_t mesh_surface_get_lod(void *p_surface, float p_model_scale, float p_distance_threshold, float p_mesh_lod_threshold, uint32_t *r_index_count = nullptr) const {
+	_FORCE_INLINE_ uint32_t mesh_surface_get_lod(void *p_surface, float p_model_scale, float p_distance_threshold, float p_mesh_lod_threshold, uint32_t &r_index_count) const {
 		Mesh::Surface *s = reinterpret_cast<Mesh::Surface *>(p_surface);
 
 		int32_t current_lod = -1;
-		if (r_index_count) {
-			*r_index_count = s->index_count;
-		}
+		r_index_count = s->index_count;
+
 		for (uint32_t i = 0; i < s->lod_count; i++) {
 			float screen_size = s->lods[i].edge_length * p_model_scale / p_distance_threshold;
 			if (screen_size > p_mesh_lod_threshold) {
@@ -341,9 +341,7 @@ public:
 		if (current_lod == -1) {
 			return 0;
 		} else {
-			if (r_index_count) {
-				*r_index_count = s->lods[current_lod].index_count;
-			}
+			r_index_count = s->lods[current_lod].index_count;
 			return current_lod + 1;
 		}
 	}
@@ -361,7 +359,7 @@ public:
 	_FORCE_INLINE_ GLenum mesh_surface_get_index_type(void *p_surface) const {
 		Mesh::Surface *s = reinterpret_cast<Mesh::Surface *>(p_surface);
 
-		return s->vertex_count <= 65536 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
+		return (s->vertex_count <= 65536 && s->vertex_count > 0) ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 	}
 
 	// Use this to cache Vertex Array Objects so they are only generated once
@@ -531,11 +529,15 @@ public:
 	virtual void skeleton_bone_set_transform_2d(RID p_skeleton, int p_bone, const Transform2D &p_transform) override;
 	virtual Transform2D skeleton_bone_get_transform_2d(RID p_skeleton, int p_bone) const override;
 
-	virtual void skeleton_update_dependency(RID p_base, RendererStorage::DependencyTracker *p_instance) override;
+	virtual void skeleton_update_dependency(RID p_base, DependencyTracker *p_instance) override;
+
+	/* OCCLUDER */
+
+	void occluder_set_mesh(RID p_occluder, const PackedVector3Array &p_vertices, const PackedInt32Array &p_indices);
 };
 
 } // namespace GLES3
 
 #endif // GLES3_ENABLED
 
-#endif // !MESH_STORAGE_GLES3_H
+#endif // MESH_STORAGE_GLES3_H

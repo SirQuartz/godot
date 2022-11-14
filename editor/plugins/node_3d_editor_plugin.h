@@ -39,6 +39,7 @@
 #include "scene/3d/light_3d.h"
 #include "scene/3d/visual_instance_3d.h"
 #include "scene/3d/world_environment.h"
+#include "scene/gui/box_container.h"
 #include "scene/gui/color_picker.h"
 #include "scene/gui/panel_container.h"
 #include "scene/gui/spin_box.h"
@@ -47,9 +48,14 @@
 #include "scene/resources/fog_material.h"
 #include "scene/resources/sky_material.h"
 
+class AcceptDialog;
+class CheckBox;
+class ConfirmationDialog;
 class EditorData;
+class MenuButton;
 class Node3DEditor;
 class Node3DEditorViewport;
+class OptionButton;
 class SubViewportContainer;
 class DirectionalLight3D;
 class WorldEnvironment;
@@ -192,6 +198,9 @@ private:
 	void _menu_option(int p_option);
 	void _set_auto_orthogonal();
 	Node3D *preview_node = nullptr;
+	bool update_preview_node = false;
+	Point2 preview_node_viewport_pos;
+	Vector3 preview_node_pos;
 	AABB *preview_bounds = nullptr;
 	Vector<String> selected_files;
 	AcceptDialog *accept = nullptr;
@@ -199,9 +208,7 @@ private:
 	Node *target_node = nullptr;
 	Point2 drop_pos;
 
-	EditorData *editor_data = nullptr;
 	EditorSelection *editor_selection = nullptr;
-	UndoRedo *undo_redo = nullptr;
 
 	CheckBox *preview_camera = nullptr;
 	SubViewportContainer *subviewport_container = nullptr;
@@ -227,6 +234,9 @@ private:
 	Label *locked_label = nullptr;
 	Label *zoom_limit_label = nullptr;
 
+	Label *preview_material_label = nullptr;
+	Label *preview_material_label_desc = nullptr;
+
 	VBoxContainer *top_right_vbox = nullptr;
 	ViewportRotationControl *rotation_control = nullptr;
 	Gradient *frame_time_gradient = nullptr;
@@ -244,7 +254,7 @@ private:
 	void _compute_edit(const Point2 &p_point);
 	void _clear_selected();
 	void _select_clicked(bool p_allow_locked);
-	ObjectID _select_ray(const Point2 &p_pos);
+	ObjectID _select_ray(const Point2 &p_pos) const;
 	void _find_items_at_pos(const Point2 &p_pos, Vector<_RayResult> &r_results, bool p_include_locked);
 	Vector3 _get_ray_pos(const Vector2 &p_pos) const;
 	Vector3 _get_ray(const Vector2 &p_pos) const;
@@ -272,6 +282,7 @@ private:
 	float get_fov() const;
 
 	ObjectID clicked;
+	ObjectID material_target;
 	Vector<_RayResult> selection_results;
 	bool clicked_wants_append = false;
 	bool selection_in_progress = false;
@@ -399,13 +410,16 @@ private:
 
 	Node *_sanitize_preview_node(Node *p_node) const;
 
-	void _create_preview(const Vector<String> &files) const;
-	void _remove_preview();
+	void _create_preview_node(const Vector<String> &files) const;
+	void _remove_preview_node();
+	bool _apply_preview_material(ObjectID p_target, const Point2 &p_point) const;
+	void _reset_preview_material() const;
+	void _remove_preview_material();
 	bool _cyclical_dependency_exists(const String &p_target_scene_path, Node *p_desired_node);
 	bool _create_instance(Node *parent, String &path, const Point2 &p_point);
 	void _perform_drop_data();
 
-	bool can_drop_data_fw(const Point2 &p_point, const Variant &p_data, Control *p_from) const;
+	bool can_drop_data_fw(const Point2 &p_point, const Variant &p_data, Control *p_from);
 	void drop_data_fw(const Point2 &p_point, const Variant &p_data, Control *p_from);
 
 	void _project_settings_changed();
@@ -425,7 +439,7 @@ protected:
 	static void _bind_methods();
 
 public:
-	void update_surface() { surface->update(); }
+	void update_surface() { surface->queue_redraw(); }
 	void update_transform_gizmo_view();
 
 	void set_can_preview(Camera3D *p_preview);
@@ -560,7 +574,7 @@ private:
 	bool grid_enable[3]; //should be always visible if true
 	bool grid_enabled = false;
 	bool grid_init_draw = false;
-	Camera3D::Projection grid_camera_last_update_perspective = Camera3D::PROJECTION_PERSPECTIVE;
+	Camera3D::ProjectionType grid_camera_last_update_perspective = Camera3D::PROJECTION_PERSPECTIVE;
 	Vector3 grid_camera_last_update_position = Vector3();
 
 	Ref<ArrayMesh> move_gizmo[3], move_plane_gizmo[3], rotate_gizmo[4], scale_gizmo[3], scale_plane_gizmo[3], axis_gizmo[3];
@@ -592,6 +606,11 @@ private:
 	// Scene drag and drop support
 	Node3D *preview_node = nullptr;
 	AABB preview_bounds;
+
+	Ref<Material> preview_material;
+	Ref<Material> preview_reset_material;
+	ObjectID preview_material_target;
+	int preview_material_surface = -1;
 
 	struct Gizmo {
 		bool visible = false;
@@ -664,14 +683,12 @@ private:
 	void _menu_gizmo_toggled(int p_option);
 	void _update_camera_override_button(bool p_game_running);
 	void _update_camera_override_viewport(Object *p_viewport);
-	HBoxContainer *hbc_menu = nullptr;
 	// Used for secondary menu items which are displayed depending on the currently selected node
 	// (such as MeshInstance's "Mesh" menu).
-	PanelContainer *context_menu_container = nullptr;
-	HBoxContainer *hbc_context_menu = nullptr;
+	PanelContainer *context_menu_panel = nullptr;
+	HBoxContainer *context_menu_hbox = nullptr;
 
 	void _generate_selection_boxes();
-	UndoRedo *undo_redo = nullptr;
 
 	int camera_override_viewport_id;
 
@@ -707,6 +724,9 @@ private:
 
 	void _selection_changed();
 	void _refresh_menu_icons();
+
+	bool do_snap_selected_nodes_to_floor = false;
+	void _snap_selected_nodes_to_floor();
 
 	// Preview Sun and Environment
 
@@ -751,8 +771,11 @@ private:
 	Button *sun_environ_settings = nullptr;
 
 	DirectionalLight3D *preview_sun = nullptr;
+	bool preview_sun_dangling = false;
 	WorldEnvironment *preview_environment = nullptr;
+	bool preview_env_dangling = false;
 	Ref<Environment> environment;
+	Ref<CameraAttributesPractical> camera_attributes;
 	Ref<ProceduralSkyMaterial> sky_material;
 
 	bool sun_environ_updating = false;
@@ -809,13 +832,10 @@ public:
 	void select_gizmo_highlight_axis(int p_axis);
 	void set_custom_camera(Node *p_camera) { custom_camera = p_camera; }
 
-	void set_undo_redo(UndoRedo *p_undo_redo) { undo_redo = p_undo_redo; }
 	Dictionary get_state() const;
 	void set_state(const Dictionary &p_state);
 
 	Ref<Environment> get_viewport_environment() { return viewport_environment; }
-
-	UndoRedo *get_undo_redo() { return undo_redo; }
 
 	void add_control_to_menu_panel(Control *p_control);
 	void remove_control_from_menu_panel(Control *p_control);
@@ -850,6 +870,15 @@ public:
 	}
 
 	void set_can_preview(Camera3D *p_preview);
+
+	void set_preview_material(Ref<Material> p_material) { preview_material = p_material; }
+	Ref<Material> get_preview_material() { return preview_material; }
+	void set_preview_reset_material(Ref<Material> p_material) { preview_reset_material = p_material; }
+	Ref<Material> get_preview_reset_material() const { return preview_reset_material; }
+	void set_preview_material_target(ObjectID p_object_id) { preview_material_target = p_object_id; }
+	ObjectID get_preview_material_target() const { return preview_material_target; }
+	void set_preview_material_surface(int p_surface) { preview_material_surface = p_surface; }
+	int get_preview_material_surface() const { return preview_material_surface; }
 
 	Node3DEditorViewport *get_editor_viewport(int p_idx) {
 		ERR_FAIL_INDEX_V(p_idx, static_cast<int>(VIEWPORTS_COUNT), nullptr);

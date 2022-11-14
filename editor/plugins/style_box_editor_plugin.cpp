@@ -36,7 +36,7 @@ bool StyleBoxPreview::grid_preview_enabled = true;
 
 void StyleBoxPreview::_grid_preview_toggled(bool p_active) {
 	grid_preview_enabled = p_active;
-	preview->update();
+	preview->queue_redraw();
 }
 
 bool EditorInspectorPluginStyleBox::can_handle(Object *p_object) {
@@ -66,7 +66,7 @@ void StyleBoxPreview::edit(const Ref<StyleBox> &p_stylebox) {
 }
 
 void StyleBoxPreview::_sb_changed() {
-	preview->update();
+	preview->queue_redraw();
 }
 
 void StyleBoxPreview::_notification(int p_what) {
@@ -132,7 +132,7 @@ StyleBoxPreview::StyleBoxPreview() {
 	preview->set_clip_contents(true);
 	preview->connect("draw", callable_mp(this, &StyleBoxPreview::_redraw));
 	checkerboard->add_child(preview);
-	preview->set_anchors_and_offsets_preset(PRESET_WIDE);
+	preview->set_anchors_and_offsets_preset(PRESET_FULL_RECT);
 
 	add_margin_child(TTR("Preview:"), checkerboard);
 	grid_preview = memnew(TextureButton);

@@ -109,6 +109,9 @@ private:
 		bool loc_used = false;
 		bool rot_used = false;
 		bool scale_used = false;
+		Vector3 init_loc = Vector3(0, 0, 0);
+		Quaternion init_rot = Quaternion(0, 0, 0, 1);
+		Vector3 init_scale = Vector3(1, 1, 1);
 
 		Vector3 loc_accum;
 		Quaternion rot_accum;
@@ -188,7 +191,7 @@ private:
 
 	uint64_t accum_pass = 1;
 	float speed_scale = 1.0;
-	float default_blend_time = 0.0;
+	double default_blend_time = 0.0;
 
 	struct AnimationData {
 		String name;
@@ -227,7 +230,7 @@ private:
 		}
 	};
 
-	HashMap<BlendKey, float, BlendKey> blend_times;
+	HashMap<BlendKey, double, BlendKey> blend_times;
 
 	struct PlaybackData {
 		AnimationData *from = nullptr;
@@ -238,8 +241,8 @@ private:
 	struct Blend {
 		PlaybackData data;
 
-		float blend_time = 0.0;
-		float blend_left = 0.0;
+		double blend_time = 0.0;
+		double blend_left = 0.0;
 	};
 
 	struct Playback {
@@ -259,6 +262,7 @@ private:
 	bool reset_on_save = true;
 	AnimationProcessCallback process_callback = ANIMATION_PROCESS_IDLE;
 	AnimationMethodCallMode method_call_mode = ANIMATION_METHOD_CALL_DEFERRED;
+	bool movie_quit_on_finish = false;
 	bool processing = false;
 	bool active = true;
 
@@ -307,11 +311,13 @@ private:
 protected:
 	bool _set(const StringName &p_name, const Variant &p_value);
 	bool _get(const StringName &p_name, Variant &r_ret) const;
-	virtual void _validate_property(PropertyInfo &property) const override;
+	void _validate_property(PropertyInfo &p_property) const;
 	void _get_property_list(List<PropertyInfo> *p_list) const;
 	void _notification(int p_what);
 
 	static void _bind_methods();
+
+	virtual Variant _post_process_key_value(const Ref<Animation> &p_anim, int p_track, Variant p_value, const Object *p_object, int p_object_idx = -1);
 
 public:
 	StringName find_animation(const Ref<Animation> &p_animation) const;
@@ -328,17 +334,17 @@ public:
 	void get_animation_list(List<StringName> *p_animations) const;
 	bool has_animation(const StringName &p_name) const;
 
-	void set_blend_time(const StringName &p_animation1, const StringName &p_animation2, float p_time);
-	float get_blend_time(const StringName &p_animation1, const StringName &p_animation2) const;
+	void set_blend_time(const StringName &p_animation1, const StringName &p_animation2, double p_time);
+	double get_blend_time(const StringName &p_animation1, const StringName &p_animation2) const;
 
 	void animation_set_next(const StringName &p_animation, const StringName &p_next);
 	StringName animation_get_next(const StringName &p_animation) const;
 
-	void set_default_blend_time(float p_default);
-	float get_default_blend_time() const;
+	void set_default_blend_time(double p_default);
+	double get_default_blend_time() const;
 
-	void play(const StringName &p_name = StringName(), float p_custom_blend = -1, float p_custom_scale = 1.0, bool p_from_end = false);
-	void play_backwards(const StringName &p_name = StringName(), float p_custom_blend = -1);
+	void play(const StringName &p_name = StringName(), double p_custom_blend = -1, float p_custom_scale = 1.0, bool p_from_end = false);
+	void play_backwards(const StringName &p_name = StringName(), double p_custom_blend = -1);
 	void queue(const StringName &p_name);
 	Vector<String> get_queue();
 	void clear_queue();
@@ -368,12 +374,15 @@ public:
 	void set_method_call_mode(AnimationMethodCallMode p_mode);
 	AnimationMethodCallMode get_method_call_mode() const;
 
-	void seek(double p_time, bool p_update = false);
-	void seek_delta(double p_time, float p_delta);
-	float get_current_animation_position() const;
-	float get_current_animation_length() const;
+	void set_movie_quit_on_finish_enabled(bool p_enabled);
+	bool is_movie_quit_on_finish_enabled() const;
 
-	void advance(float p_time);
+	void seek(double p_time, bool p_update = false);
+	void seek_delta(double p_time, double p_delta);
+	double get_current_animation_position() const;
+	double get_current_animation_length() const;
+
+	void advance(double p_time);
 
 	void set_root(const NodePath &p_root);
 	NodePath get_root() const;
@@ -395,4 +404,4 @@ public:
 VARIANT_ENUM_CAST(AnimationPlayer::AnimationProcessCallback);
 VARIANT_ENUM_CAST(AnimationPlayer::AnimationMethodCallMode);
 
-#endif
+#endif // ANIMATION_PLAYER_H

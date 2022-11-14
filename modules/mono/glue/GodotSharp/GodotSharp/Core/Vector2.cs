@@ -1,8 +1,3 @@
-#if REAL_T_IS_DOUBLE
-using real_t = System.Double;
-#else
-using real_t = System.Single;
-#endif
 using System;
 using System.Runtime.InteropServices;
 
@@ -44,8 +39,8 @@ namespace Godot
         /// <summary>
         /// Access vector components using their index.
         /// </summary>
-        /// <exception cref="IndexOutOfRangeException">
-        /// Thrown when the given the <paramref name="index"/> is not 0 or 1.
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="index"/> is not 0 or 1.
         /// </exception>
         /// <value>
         /// <c>[0]</c> is equivalent to <see cref="x"/>,
@@ -62,7 +57,7 @@ namespace Godot
                     case 1:
                         return y;
                     default:
-                        throw new IndexOutOfRangeException();
+                        throw new ArgumentOutOfRangeException(nameof(index));
                 }
             }
             set
@@ -76,7 +71,7 @@ namespace Godot
                         y = value;
                         return;
                     default:
-                        throw new IndexOutOfRangeException();
+                        throw new ArgumentOutOfRangeException(nameof(index));
                 }
             }
         }
@@ -218,6 +213,50 @@ namespace Godot
                 Mathf.CubicInterpolate(x, b.x, preA.x, postB.x, weight),
                 Mathf.CubicInterpolate(y, b.y, preA.y, postB.y, weight)
             );
+        }
+
+        /// <summary>
+        /// Performs a cubic interpolation between vectors <paramref name="preA"/>, this vector,
+        /// <paramref name="b"/>, and <paramref name="postB"/>, by the given amount <paramref name="weight"/>.
+        /// It can perform smoother interpolation than <see cref="CubicInterpolate"/>
+        /// by the time values.
+        /// </summary>
+        /// <param name="b">The destination vector.</param>
+        /// <param name="preA">A vector before this vector.</param>
+        /// <param name="postB">A vector after <paramref name="b"/>.</param>
+        /// <param name="weight">A value on the range of 0.0 to 1.0, representing the amount of interpolation.</param>
+        /// <param name="t"></param>
+        /// <param name="preAT"></param>
+        /// <param name="postBT"></param>
+        /// <returns>The interpolated vector.</returns>
+        public Vector2 CubicInterpolateInTime(Vector2 b, Vector2 preA, Vector2 postB, real_t weight, real_t t, real_t preAT, real_t postBT)
+        {
+            return new Vector2
+            (
+                Mathf.CubicInterpolateInTime(x, b.x, preA.x, postB.x, weight, t, preAT, postBT),
+                Mathf.CubicInterpolateInTime(y, b.y, preA.y, postB.y, weight, t, preAT, postBT)
+            );
+        }
+
+        /// <summary>
+        /// Returns the point at the given <paramref name="t"/> on a one-dimensional Bezier curve defined by this vector
+        /// and the given <paramref name="control1"/>, <paramref name="control2"/> and <paramref name="end"/> points.
+        /// </summary>
+        /// <param name="control1">Control point that defines the bezier curve.</param>
+        /// <param name="control2">Control point that defines the bezier curve.</param>
+        /// <param name="end">The destination vector.</param>
+        /// <param name="t">A value on the range of 0.0 to 1.0, representing the amount of interpolation.</param>
+        /// <returns>The interpolated vector.</returns>
+        public Vector2 BezierInterpolate(Vector2 control1, Vector2 control2, Vector2 end, real_t t)
+        {
+            // Formula from Wikipedia article on Bezier curves
+            real_t omt = 1 - t;
+            real_t omt2 = omt * omt;
+            real_t omt3 = omt2 * omt;
+            real_t t2 = t * t;
+            real_t t3 = t2 * t;
+
+            return this * omt3 + control1 * omt2 * t * 3 + control2 * omt * t2 * 3 + end * t3;
         }
 
         /// <summary>
@@ -463,7 +502,7 @@ namespace Godot
 #if DEBUG
             if (!normal.IsNormalized())
             {
-                throw new ArgumentException("Argument is not normalized", nameof(normal));
+                throw new ArgumentException("Argument is not normalized.", nameof(normal));
             }
 #endif
             return (2 * Dot(normal) * normal) - this;
@@ -474,10 +513,10 @@ namespace Godot
         /// </summary>
         /// <param name="angle">The angle to rotate by, in radians.</param>
         /// <returns>The rotated vector.</returns>
-        public Vector2 Rotated(real_t phi)
+        public Vector2 Rotated(real_t angle)
         {
-            real_t sine = Mathf.Sin(phi);
-            real_t cosi = Mathf.Cos(phi);
+            real_t sine = Mathf.Sin(angle);
+            real_t cosi = Mathf.Cos(angle);
             return new Vector2(
                 x * cosi - y * sine,
                 x * sine + y * cosi);
@@ -513,7 +552,7 @@ namespace Godot
         ///
         /// This method also handles interpolating the lengths if the input vectors
         /// have different lengths. For the special case of one or both input vectors
-        /// having zero length, this method behaves like <see cref="Lerp"/>.
+        /// having zero length, this method behaves like <see cref="Lerp(Vector2, real_t)"/>.
         /// </summary>
         /// <param name="to">The destination vector for interpolation.</param>
         /// <param name="weight">A value on the range of 0.0 to 1.0, representing the amount of interpolation.</param>
@@ -522,9 +561,10 @@ namespace Godot
         {
             real_t startLengthSquared = LengthSquared();
             real_t endLengthSquared = to.LengthSquared();
-            if (startLengthSquared == 0.0 || endLengthSquared == 0.0) {
-              // Zero length vectors have no angle, so the best we can do is either lerp or throw an error.
-              return Lerp(to, weight);
+            if (startLengthSquared == 0.0 || endLengthSquared == 0.0)
+            {
+                // Zero length vectors have no angle, so the best we can do is either lerp or throw an error.
+                return Lerp(to, weight);
             }
             real_t startLength = Mathf.Sqrt(startLengthSquared);
             real_t resultLength = Mathf.Lerp(startLength, Mathf.Sqrt(endLengthSquared), weight);
@@ -619,16 +659,6 @@ namespace Godot
         {
             this.x = x;
             this.y = y;
-        }
-
-        /// <summary>
-        /// Constructs a new <see cref="Vector2"/> from an existing <see cref="Vector2"/>.
-        /// </summary>
-        /// <param name="v">The existing <see cref="Vector2"/>.</param>
-        public Vector2(Vector2 v)
-        {
-            x = v.x;
-            y = v.y;
         }
 
         /// <summary>
@@ -918,11 +948,7 @@ namespace Godot
         /// <returns>Whether or not the vector and the object are equal.</returns>
         public override bool Equals(object obj)
         {
-            if (obj is Vector2)
-            {
-                return Equals((Vector2)obj);
-            }
-            return false;
+            return obj is Vector2 other && Equals(other);
         }
 
         /// <summary>

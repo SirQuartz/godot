@@ -1,8 +1,3 @@
-#if REAL_T_IS_DOUBLE
-using real_t = System.Double;
-#else
-using real_t = System.Single;
-#endif
 using System;
 using System.Runtime.InteropServices;
 
@@ -53,8 +48,8 @@ namespace Godot
         /// <summary>
         /// Access vector components using their <paramref name="index"/>.
         /// </summary>
-        /// <exception cref="IndexOutOfRangeException">
-        /// Thrown when the given the <paramref name="index"/> is not 0, 1 or 2.
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="index"/> is not 0, 1 or 2.
         /// </exception>
         /// <value>
         /// <c>[0]</c> is equivalent to <see cref="x"/>,
@@ -74,7 +69,7 @@ namespace Godot
                     case 2:
                         return z;
                     default:
-                        throw new IndexOutOfRangeException();
+                        throw new ArgumentOutOfRangeException(nameof(index));
                 }
             }
             set
@@ -91,7 +86,7 @@ namespace Godot
                         z = value;
                         return;
                     default:
-                        throw new IndexOutOfRangeException();
+                        throw new ArgumentOutOfRangeException(nameof(index));
                 }
             }
         }
@@ -335,29 +330,6 @@ namespace Godot
         }
 
         /// <summary>
-        /// Constructs a new <see cref="Vector3i"/> from an existing <see cref="Vector3i"/>.
-        /// </summary>
-        /// <param name="vi">The existing <see cref="Vector3i"/>.</param>
-        public Vector3i(Vector3i vi)
-        {
-            this.x = vi.x;
-            this.y = vi.y;
-            this.z = vi.z;
-        }
-
-        /// <summary>
-        /// Constructs a new <see cref="Vector3i"/> from an existing <see cref="Vector3"/>
-        /// by rounding the components via <see cref="Mathf.RoundToInt(real_t)"/>.
-        /// </summary>
-        /// <param name="v">The <see cref="Vector3"/> to convert.</param>
-        public Vector3i(Vector3 v)
-        {
-            this.x = Mathf.RoundToInt(v.x);
-            this.y = Mathf.RoundToInt(v.y);
-            this.z = Mathf.RoundToInt(v.z);
-        }
-
-        /// <summary>
         /// Adds each component of the <see cref="Vector3i"/>
         /// with the components of the given <see cref="Vector3i"/>.
         /// </summary>
@@ -449,7 +421,7 @@ namespace Godot
         }
 
         /// <summary>
-        /// Multiplies each component of the <see cref="Vector3i"/>
+        /// Divides each component of the <see cref="Vector3i"/>
         /// by the given <see langword="int"/>.
         /// </summary>
         /// <param name="vec">The dividend vector.</param>
@@ -689,7 +661,11 @@ namespace Godot
         /// <param name="value">The vector to convert.</param>
         public static explicit operator Vector3i(Vector3 value)
         {
-            return new Vector3i(value);
+            return new Vector3i(
+                Mathf.RoundToInt(value.x),
+                Mathf.RoundToInt(value.y),
+                Mathf.RoundToInt(value.z)
+            );
         }
 
         /// <summary>
@@ -700,12 +676,7 @@ namespace Godot
         /// <returns>Whether or not the vector and the object are equal.</returns>
         public override bool Equals(object obj)
         {
-            if (obj is Vector3i)
-            {
-                return Equals((Vector3i)obj);
-            }
-
-            return false;
+            return obj is Vector3i other && Equals(other);
         }
 
         /// <summary>

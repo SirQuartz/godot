@@ -28,12 +28,11 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef RSSR_SCENE_SHADER_FC_H
-#define RSSR_SCENE_SHADER_FC_H
+#ifndef SCENE_SHADER_FORWARD_CLUSTERED_H
+#define SCENE_SHADER_FORWARD_CLUSTERED_H
 
 #include "servers/rendering/renderer_rd/renderer_scene_render_rd.h"
-#include "servers/rendering/renderer_rd/renderer_storage_rd.h"
-#include "servers/rendering/renderer_rd/shaders/scene_forward_clustered.glsl.gen.h"
+#include "servers/rendering/renderer_rd/shaders/forward_clustered/scene_forward_clustered.glsl.gen.h"
 
 namespace RendererSceneRenderImplementation {
 
@@ -42,8 +41,6 @@ private:
 	static SceneShaderForwardClustered *singleton;
 
 public:
-	RendererStorageRD *storage = nullptr;
-
 	enum ShaderVersion {
 		SHADER_VERSION_DEPTH_PASS,
 		SHADER_VERSION_DEPTH_PASS_DP,
@@ -96,7 +93,7 @@ public:
 		SHADER_SPECIALIZATION_DIRECTIONAL_SOFT_SHADOWS = 1 << 3,
 	};
 
-	struct ShaderData : public RendererRD::ShaderData {
+	struct ShaderData : public RendererRD::MaterialStorage::ShaderData {
 		enum BlendMode { //used internally
 			BLEND_MODE_MIX,
 			BLEND_MODE_ADD,
@@ -177,17 +174,19 @@ public:
 		bool uses_time = false;
 		bool writes_modelview_or_projection = false;
 		bool uses_world_coordinates = false;
+		bool uses_screen_texture_mipmaps = false;
 		Cull cull_mode = CULL_DISABLED;
 
 		uint64_t last_pass = 0;
 		uint32_t index = 0;
 
 		virtual void set_code(const String &p_Code);
-		virtual void set_default_texture_param(const StringName &p_name, RID p_texture, int p_index);
-		virtual void get_param_list(List<PropertyInfo> *p_param_list) const;
+		virtual void set_path_hint(const String &p_path);
+		virtual void set_default_texture_parameter(const StringName &p_name, RID p_texture, int p_index);
+		virtual void get_shader_uniform_list(List<PropertyInfo> *p_param_list) const;
 		void get_instance_param_list(List<RendererMaterialStorage::InstanceShaderParam> *p_param_list) const;
 
-		virtual bool is_param_texture(const StringName &p_param) const;
+		virtual bool is_parameter_texture(const StringName &p_param) const;
 		virtual bool is_animated() const;
 		virtual bool casts_shadows() const;
 		virtual Variant get_default_parameter(const StringName &p_parameter) const;
@@ -200,12 +199,12 @@ public:
 
 	SelfList<ShaderData>::List shader_list;
 
-	RendererRD::ShaderData *_create_shader_func();
-	static RendererRD::ShaderData *_create_shader_funcs() {
+	RendererRD::MaterialStorage::ShaderData *_create_shader_func();
+	static RendererRD::MaterialStorage::ShaderData *_create_shader_funcs() {
 		return static_cast<SceneShaderForwardClustered *>(singleton)->_create_shader_func();
 	}
 
-	struct MaterialData : public RendererRD::MaterialData {
+	struct MaterialData : public RendererRD::MaterialStorage::MaterialData {
 		ShaderData *shader_data = nullptr;
 		RID uniform_set;
 		uint64_t last_pass = 0;
@@ -218,8 +217,8 @@ public:
 		virtual ~MaterialData();
 	};
 
-	RendererRD::MaterialData *_create_material_func(ShaderData *p_shader);
-	static RendererRD::MaterialData *_create_material_funcs(RendererRD::ShaderData *p_shader) {
+	RendererRD::MaterialStorage::MaterialData *_create_material_func(ShaderData *p_shader);
+	static RendererRD::MaterialStorage::MaterialData *_create_material_funcs(RendererRD::MaterialStorage::ShaderData *p_shader) {
 		return static_cast<SceneShaderForwardClustered *>(singleton)->_create_material_func(static_cast<ShaderData *>(p_shader));
 	}
 
@@ -249,9 +248,10 @@ public:
 	SceneShaderForwardClustered();
 	~SceneShaderForwardClustered();
 
-	void init(RendererStorageRD *p_storage, const String p_defines);
+	void init(const String p_defines);
 	void set_default_specialization_constants(const Vector<RD::PipelineSpecializationConstant> &p_constants);
 };
 
 } // namespace RendererSceneRenderImplementation
-#endif // !RSSR_SCENE_SHADER_FM_H
+
+#endif // SCENE_SHADER_FORWARD_CLUSTERED_H

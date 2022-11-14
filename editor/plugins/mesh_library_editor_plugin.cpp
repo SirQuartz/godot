@@ -191,7 +191,7 @@ void MeshLibraryEditor::_import_scene(Node *p_scene, Ref<MeshLibrary> p_library,
 			}
 		}
 
-		Vector<Ref<Texture2D>> textures = EditorInterface::get_singleton()->make_mesh_previews(meshes, &transforms, EditorSettings::get_singleton()->get("editors/grid_map/preview_size"));
+		Vector<Ref<Texture2D>> textures = EditorInterface::get_singleton()->make_mesh_previews(meshes, &transforms, EDITOR_GET("editors/grid_map/preview_size"));
 		int j = 0;
 		for (int i = 0; i < ids.size(); i++) {
 			if (mesh_instances.find(ids[i])) {
@@ -263,7 +263,7 @@ MeshLibraryEditor::MeshLibraryEditor() {
 	file->clear_filters();
 	file->set_title(TTR("Import Scene"));
 	for (int i = 0; i < extensions.size(); i++) {
-		file->add_filter("*." + extensions[i] + " ; " + extensions[i].to_upper());
+		file->add_filter("*." + extensions[i], extensions[i].to_upper());
 	}
 	add_child(file);
 	file->connect("file_selected", callable_mp(this, &MeshLibraryEditor::_import_scene_cbk));
@@ -288,9 +288,9 @@ MeshLibraryEditor::MeshLibraryEditor() {
 	cd_remove->get_ok_button()->connect("pressed", callable_mp(this, &MeshLibraryEditor::_menu_remove_confirm));
 	cd_update = memnew(ConfirmationDialog);
 	add_child(cd_update);
-	cd_update->get_ok_button()->set_text(TTR("Apply without Transforms"));
-	cd_update->get_ok_button()->connect("pressed", callable_mp(this, &MeshLibraryEditor::_menu_update_confirm), varray(false));
-	cd_update->add_button(TTR("Apply with Transforms"))->connect("pressed", callable_mp(this, &MeshLibraryEditor::_menu_update_confirm), varray(true));
+	cd_update->set_ok_button_text(TTR("Apply without Transforms"));
+	cd_update->get_ok_button()->connect("pressed", callable_mp(this, &MeshLibraryEditor::_menu_update_confirm).bind(false));
+	cd_update->add_button(TTR("Apply with Transforms"))->connect("pressed", callable_mp(this, &MeshLibraryEditor::_menu_update_confirm).bind(true));
 }
 
 void MeshLibraryEditorPlugin::edit(Object *p_node) {
@@ -319,7 +319,7 @@ void MeshLibraryEditorPlugin::make_visible(bool p_visible) {
 MeshLibraryEditorPlugin::MeshLibraryEditorPlugin() {
 	mesh_library_editor = memnew(MeshLibraryEditor);
 
-	EditorNode::get_singleton()->get_main_control()->add_child(mesh_library_editor);
+	EditorNode::get_singleton()->get_main_screen_control()->add_child(mesh_library_editor);
 	mesh_library_editor->set_anchors_and_offsets_preset(Control::PRESET_TOP_WIDE);
 	mesh_library_editor->set_end(Point2(0, 22));
 	mesh_library_editor->hide();

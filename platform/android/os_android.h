@@ -65,6 +65,8 @@ private:
 	GodotJavaWrapper *godot_java = nullptr;
 	GodotIOJavaWrapper *godot_io_java = nullptr;
 
+	String get_system_property(const char *key) const;
+
 public:
 	static const char *ANDROID_EXEC_PATH;
 
@@ -93,6 +95,8 @@ public:
 	virtual Error open_dynamic_library(const String p_path, void *&p_library_handle, bool p_also_set_library_path = false, String *r_resolved_path = nullptr) override;
 
 	virtual String get_name() const override;
+	virtual String get_distribution_name() const override;
+	virtual String get_version() const override;
 	virtual MainLoop *get_main_loop() const override;
 
 	void main_loop_begin();
@@ -121,6 +125,8 @@ public:
 	virtual String get_unique_id() const override;
 
 	virtual String get_system_dir(SystemDir p_dir, bool p_shared_storage = true) const override;
+
+	virtual Error move_to_trash(const String &p_path) override;
 
 	void vibrate_handheld(int p_duration_ms) override;
 

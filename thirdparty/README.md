@@ -44,7 +44,7 @@ Files extracted from upstream source:
 ## certs
 
 - Upstream: Mozilla, via https://github.com/bagder/ca-bundle
-- Version: git (8b263a18fca98ea371e54227837321c5cdaa1ba7, 2021)
+- Version: git (7f33e7eb8472dbcf31fdcf50cd216c89a282825d, 2022)
 - License: MPL 2.0
 
 
@@ -118,7 +118,7 @@ will limit its functionality to IPv4 only.
 ## etcpak
 
 - Upstream: https://github.com/wolfpld/etcpak
-- Version: 1.0 (a77d5a37ddf48034cee8aeb9e8792a623c265b4c, 2022)
+- Version: 1.0 (153f0e04a18b93c277684b577365210adcf8e11c, 2022)
 - License: BSD-3-Clause
 
 Files extracted from upstream source:
@@ -176,7 +176,7 @@ commits.
 ## glslang
 
 - Upstream: https://github.com/KhronosGroup/glslang
-- Version: 11.8.0 (c34bb3b6c55f6ab084124ad964be95a699700d34, 2022)
+- Version: 11.12.0 / sdk-1.3.231.1 (5755de46b07e4374c05fb1081f65f7ae1f8cca81, 2022)
 - License: glslang
 
 Version should be kept in sync with the one of the used Vulkan SDK (see `vulkan`
@@ -213,7 +213,7 @@ Files extracted from upstream source:
 ## harfbuzz
 
 - Upstream: https://github.com/harfbuzz/harfbuzz
-- Version: 4.3.0 (aee123fc83388b8f5acfb301d87bd92eccc5b843, 2022)
+- Version: 5.3.1 (970321db7bddbe8c579b73751fc655a924ea3ce6, 2022)
 - License: MIT
 
 Files extracted from upstream source:
@@ -225,24 +225,26 @@ Files extracted from upstream source:
 ## icu4c
 
 - Upstream: https://github.com/unicode-org/icu
-- Version: 71.1 (c205e7ee49a7086a28b9c275fcfdac9ca3dc815d, 2022)
+- Version: 72.1 (ff3514f257ea10afe7e710e9f946f68d256704b1, 2022)
 - License: Unicode
 
 Files extracted from upstream source:
 
 - the `common` folder
+- `scriptset.*`, `ucln_in.*`, `uspoof.cpp"` and `uspoof_impl.cpp` from the `i18n` folder
+- `uspoof.h` from the `i18n/unicode` folder
 - `LICENSE`
 
 Files generated from upstream source:
 
-- the `icudt71l.dat` built with the provided `godot_data.json` config file (see
+- the `icudt72l.dat` built with the provided `godot_data.json` config file (see
   https://github.com/unicode-org/icu/blob/master/docs/userguide/icu_data/buildtool.md
   for instructions).
 
 - Step 1: Build ICU with default options - `./runConfigureICU {PLATFORM} && make`.
 - Step 2: Reconfigure ICU with custom data config - `ICU_DATA_FILTER_FILE={GODOT_SOURCE}/thirdparty/icu4c/godot_data.json ./runConfigureICU {PLATFORM} --with-data-packaging=common`.
 - Step 3: Delete `data/out` folder and rebuild data - `cd data && rm -rf ./out && make`.
-- Step 4: Copy `source/data/out/icudt71l.dat` to the `{GODOT_SOURCE}/thirdparty/icu4c/icudt71l.dat`.
+- Step 4: Copy `source/data/out/icudt72l.dat` to the `{GODOT_SOURCE}/thirdparty/icu4c/icudt72l.dat`.
 
 
 ## jpeg-compressor
@@ -273,7 +275,7 @@ Files extracted from upstream source:
 ## libpng
 
 - Upstream: http://libpng.org/pub/png/libpng.html
-- Version: 1.6.37 (a40189cf881e9f0db80511c382292a5604c3c3d1, 2019)
+- Version: 1.6.38 (0a158f3506502dfa23edfc42790dfaed82efba17, 2022)
 - License: libpng/zlib
 
 Files extracted from upstream source:
@@ -317,30 +319,33 @@ Files extracted from upstream source:
 ## libwebp
 
 - Upstream: https://chromium.googlesource.com/webm/libwebp/
-- Version: 1.2.2 (b0a860891dcd4c0c2d7c6149e5cccb6eb881cc21, 2022)
+- Version: 1.2.4 (0d1f12546bd803099a60c070517a552483f3790e, 2022)
 - License: BSD-3-Clause
 
 Files extracted from upstream source:
 
-- `src/*` except from: `.am`, `.rc` and `.in` files
+- `src/` and `sharpyuv/` except from: `.am`, `.rc` and `.in` files
 - `AUTHORS`, `COPYING`, `PATENTS`
 
 
 ## mbedtls
 
-- Upstream: https://tls.mbed.org/
-- Version: 2.16.12 (cf4667126010c665341f9e50ef691b7ef8294188, 2021)
+- Upstream: https://github.com/Mbed-TLS/mbedtls
+- Version: 2.18.1 (dd79db10014d85b26d11fe57218431f2e5ede6f2, 2022)
 - License: Apache 2.0
 
 File extracted from upstream release tarball:
 
 - All `*.h` from `include/mbedtls/` to `thirdparty/mbedtls/include/mbedtls/` except `config_psa.h` and `psa_util.h`.
 - All `*.c` and `*.h` from `library/` to `thirdparty/mbedtls/library/` except those starting with `psa_*`.
-- `LICENSE` and `apache-2.0.txt` files.
+- The `LICENSE` file.
 - Applied the patch in `patches/1453.diff` (upstream PR:
   https://github.com/ARMmbed/mbedtls/pull/1453).
 - Added 2 files `godot_core_mbedtls_platform.c` and `godot_core_mbedtls_config.h`
   providing configuration for light bundling with core.
+
+Some changes have been made in order to fix Windows on ARM build errors.
+They are marked with `// -- GODOT start --` and `// -- GODOT end --`
 
 
 ## meshoptimizer
@@ -371,6 +376,9 @@ Files extracted from upstream repository:
 - `minimp3.h`
 - `minimp3_ex.h`
 - `LICENSE`
+
+Some changes have been made in order to fix Windows on ARM build errors, and
+to solve some MSVC warnings. See the patches in the `patches` directory.
 
 
 ## miniupnpc
@@ -526,7 +534,7 @@ Patch files are provided in `oidn/patches/`.
 ## openxr
 
 - Upstream: https://github.com/KhronosGroup/OpenXR-SDK
-- Version: 1.0.23 (885a90f8934d84121344ba8e4aa5159d5b496e08, 2022)
+- Version: 1.0.25 (c16a18c99740ea5dd251e3af117e0e5aea4ceaa9, 2022)
 - License: Apache 2.0
 
 Files extracted from upstream source:
@@ -597,11 +605,10 @@ Godot. See the patch in the `patches` folder for details.
 ## spirv-reflect
 
 - Upstream: https://github.com/KhronosGroup/SPIRV-Reflect
-- Version: git (1aceb6af56e74b92a00378842dda5c5a73f49a4b, 2022)
+- Version: sdk-1.3.231.1 (b68b5a8a5d8ab5fce79e6596f3a731291046393a, 2022)
 - License: Apache 2.0
 
-Does not track Vulkan SDK releases closely, but try to package a commit newer
-than the matching glslang and Vulkan headers, just in case.
+Now tracks Vulkan SDK releases, so keep it in sync with volk / vulkan.
 
 Files extracted from upstream source:
 
@@ -611,7 +618,7 @@ Files extracted from upstream source:
 
 Some downstream changes have been made and are identified by
 `// -- GODOT begin --` and `// -- GODOT end --` comments.
-They can be reapplied using the patch included in the `patches`
+They can be reapplied using the patches included in the `patches`
 folder.
 
 
@@ -647,7 +654,7 @@ instead of `miniz.h` as an external dependency.
 ## thorvg
 
 - Upstream: https://github.com/Samsung/thorvg
-- Version: 0.8.1 (c4ccb1078f4390ec749ab8e05ba7e9e35f81285f, 2022)
+- Version: 0.8.2 (496796f1e5e85bd5fbba36dae987edb1b3945592, 2022)
 - License: MIT
 
 Files extracted from upstream source:
@@ -676,7 +683,7 @@ folder.
 ## volk
 
 - Upstream: https://github.com/zeux/volk
-- Version: 1.3.204 (92ba7c9f112a82cecf452ebf4b7c46f149a5799e, 2022)
+- Version: sdk-1.3.231.1 (f29df7d2834c434b39169d5b2e4dde8c05a5adc1, 2022)
 - License: MIT
 
 Unless there is a specific reason to package a more recent version, please stick
@@ -685,7 +692,6 @@ to tagged releases. All Vulkan libraries and headers should be kept in sync so:
 - Update Vulkan SDK components to the matching tag (see "vulkan").
 - Update glslang (see "glslang").
 - Update spirv-reflect (see "spirv-reflect").
-
 
 Files extracted from upstream source:
 
@@ -696,7 +702,7 @@ Files extracted from upstream source:
 ## vulkan
 
 - Upstream: https://github.com/KhronosGroup/Vulkan-Headers
-- Version: 1.3.204 (1dace16d8044758d32736eb59802d171970e9448, 2022)
+- Version: sdk-1.3.231.1 (98f440ce6868c94f5ec6e198cc1adda4760e8849, 2022)
 - License: Apache 2.0
 
 The vendored version should be kept in sync with volk, see above.
@@ -759,7 +765,7 @@ Files extracted from upstream source:
 ## zstd
 
 - Upstream: https://github.com/facebook/zstd
-- Version: 1.5.0 (a488ba114ec17ea1054b9057c26a046fc122b3b6, 2021)
+- Version: 1.5.2 (e47e674cd09583ff0503f0f6defd6d23d8b718d3, 2022)
 - License: BSD-3-Clause
 
 Files extracted from upstream source:

@@ -28,8 +28,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef ANIMATION_GRAPH_PLAYER_H
-#define ANIMATION_GRAPH_PLAYER_H
+#ifndef ANIMATION_TREE_H
+#define ANIMATION_TREE_H
 
 #include "animation_player.h"
 #include "scene/3d/node_3d.h"
@@ -99,18 +99,19 @@ public:
 	Array _get_filters() const;
 	void _set_filters(const Array &p_filters);
 	friend class AnimationNodeBlendTree;
-	double _blend_node(const StringName &p_subpath, const Vector<StringName> &p_connections, AnimationNode *p_new_parent, Ref<AnimationNode> p_node, double p_time, bool p_seek, bool p_seek_root, real_t p_blend, FilterAction p_filter = FILTER_IGNORE, bool p_optimize = true, real_t *r_max = nullptr);
+	double _blend_node(const StringName &p_subpath, const Vector<StringName> &p_connections, AnimationNode *p_new_parent, Ref<AnimationNode> p_node, double p_time, bool p_seek, bool p_seek_root, real_t p_blend, FilterAction p_filter = FILTER_IGNORE, bool p_sync = true, real_t *r_max = nullptr);
 
 protected:
 	void blend_animation(const StringName &p_animation, double p_time, double p_delta, bool p_seeked, bool p_seek_root, real_t p_blend, int p_pingponged = 0);
-	double blend_node(const StringName &p_sub_path, Ref<AnimationNode> p_node, double p_time, bool p_seek, bool p_seek_root, real_t p_blend, FilterAction p_filter = FILTER_IGNORE, bool p_optimize = true);
-	double blend_input(int p_input, double p_time, bool p_seek, bool p_seek_root, real_t p_blend, FilterAction p_filter = FILTER_IGNORE, bool p_optimize = true);
+	double blend_node(const StringName &p_sub_path, Ref<AnimationNode> p_node, double p_time, bool p_seek, bool p_seek_root, real_t p_blend, FilterAction p_filter = FILTER_IGNORE, bool p_sync = true);
+	double blend_input(int p_input, double p_time, bool p_seek, bool p_seek_root, real_t p_blend, FilterAction p_filter = FILTER_IGNORE, bool p_sync = true);
 
 	void make_invalid(const String &p_reason);
+	AnimationTree *get_animation_tree() const;
 
 	static void _bind_methods();
 
-	void _validate_property(PropertyInfo &property) const override;
+	void _validate_property(PropertyInfo &p_property) const;
 
 	GDVIRTUAL0RC(Dictionary, _get_child_nodes)
 	GDVIRTUAL0RC(Array, _get_parameter_list)
@@ -232,6 +233,7 @@ private:
 		Variant init_value;
 		Variant value;
 		Vector<StringName> subpath;
+		bool is_using_angle = false;
 		TrackCacheValue() { type = Animation::TYPE_VALUE; }
 	};
 
@@ -270,6 +272,7 @@ private:
 	HashSet<TrackCache *> playing_caches;
 
 	Ref<AnimationNode> root;
+	NodePath advance_expression_base_node = NodePath(String("."));
 
 	AnimationProcessCallback process_callback = ANIMATION_PROCESS_IDLE;
 	bool active = false;
@@ -279,6 +282,8 @@ private:
 	bool cache_valid = false;
 	void _node_removed(Node *p_node);
 
+	void _setup_animation_player();
+	void _animation_player_changed();
 	void _clear_caches();
 	bool _update_caches(AnimationPlayer *player);
 	void _process_graph(double p_delta);
@@ -319,6 +324,8 @@ protected:
 	void _notification(int p_what);
 	static void _bind_methods();
 
+	virtual Variant _post_process_key_value(const Ref<Animation> &p_anim, int p_track, Variant p_value, const Object *p_object, int p_object_idx = -1);
+
 public:
 	void set_tree_root(const Ref<AnimationNode> &p_root);
 	Ref<AnimationNode> get_tree_root() const;
@@ -332,7 +339,10 @@ public:
 	void set_animation_player(const NodePath &p_player);
 	NodePath get_animation_player() const;
 
-	TypedArray<String> get_configuration_warnings() const override;
+	void set_advance_expression_base_node(const NodePath &p_advance_expression_base_node);
+	NodePath get_advance_expression_base_node() const;
+
+	PackedStringArray get_configuration_warnings() const override;
 
 	bool is_state_invalid() const;
 	String get_invalid_state_reason() const;
@@ -343,7 +353,7 @@ public:
 	Transform3D get_root_motion_transform() const;
 
 	real_t get_connection_activity(const StringName &p_path, int p_connection) const;
-	void advance(real_t p_time);
+	void advance(double p_time);
 
 	void rename_parameter(const String &p_base, const String &p_new_base);
 
@@ -354,4 +364,4 @@ public:
 
 VARIANT_ENUM_CAST(AnimationTree::AnimationProcessCallback)
 
-#endif // ANIMATION_GRAPH_PLAYER_H
+#endif // ANIMATION_TREE_H

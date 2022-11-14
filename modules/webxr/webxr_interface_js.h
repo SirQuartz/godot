@@ -31,7 +31,7 @@
 #ifndef WEBXR_INTERFACE_JS_H
 #define WEBXR_INTERFACE_JS_H
 
-#ifdef JAVASCRIPT_ENABLED
+#ifdef WEB_ENABLED
 
 #include "webxr_interface.h"
 
@@ -45,6 +45,7 @@ class WebXRInterfaceJS : public WebXRInterface {
 private:
 	bool initialized;
 	Ref<XRPositionalTracker> head_tracker;
+	Transform3D head_transform;
 
 	String session_mode;
 	String required_features;
@@ -87,7 +88,7 @@ public:
 	virtual uint32_t get_view_count() override;
 	virtual Transform3D get_camera_transform() override;
 	virtual Transform3D get_transform_for_view(uint32_t p_view, const Transform3D &p_cam_transform) override;
-	virtual CameraMatrix get_projection_for_view(uint32_t p_view, double p_aspect, double p_z_near, double p_z_far) override;
+	virtual Projection get_projection_for_view(uint32_t p_view, double p_aspect, double p_z_near, double p_z_far) override;
 	virtual Vector<BlitToScreen> post_draw_viewport(RID p_render_target, const Rect2 &p_screen_rect) override;
 
 	virtual void process() override;
@@ -98,6 +99,6 @@ public:
 	~WebXRInterfaceJS();
 };
 
-#endif // JAVASCRIPT_ENABLED
+#endif // WEB_ENABLED
 
 #endif // WEBXR_INTERFACE_JS_H

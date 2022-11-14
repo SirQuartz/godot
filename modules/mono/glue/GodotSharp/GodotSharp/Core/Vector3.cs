@@ -1,8 +1,3 @@
-#if REAL_T_IS_DOUBLE
-using real_t = System.Double;
-#else
-using real_t = System.Single;
-#endif
 using System;
 using System.Runtime.InteropServices;
 
@@ -53,8 +48,8 @@ namespace Godot
         /// <summary>
         /// Access vector components using their index.
         /// </summary>
-        /// <exception cref="IndexOutOfRangeException">
-        /// Thrown when the given the <paramref name="index"/> is not 0, 1 or 2.
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="index"/> is not 0, 1 or 2.
         /// </exception>
         /// <value>
         /// <c>[0]</c> is equivalent to <see cref="x"/>,
@@ -74,7 +69,7 @@ namespace Godot
                     case 2:
                         return z;
                     default:
-                        throw new IndexOutOfRangeException();
+                        throw new ArgumentOutOfRangeException(nameof(index));
                 }
             }
             set
@@ -91,7 +86,7 @@ namespace Godot
                         z = value;
                         return;
                     default:
-                        throw new IndexOutOfRangeException();
+                        throw new ArgumentOutOfRangeException(nameof(index));
                 }
             }
         }
@@ -211,6 +206,51 @@ namespace Godot
                 Mathf.CubicInterpolate(y, b.y, preA.y, postB.y, weight),
                 Mathf.CubicInterpolate(z, b.z, preA.z, postB.z, weight)
             );
+        }
+
+        /// <summary>
+        /// Performs a cubic interpolation between vectors <paramref name="preA"/>, this vector,
+        /// <paramref name="b"/>, and <paramref name="postB"/>, by the given amount <paramref name="weight"/>.
+        /// It can perform smoother interpolation than <see cref="CubicInterpolate"/>
+        /// by the time values.
+        /// </summary>
+        /// <param name="b">The destination vector.</param>
+        /// <param name="preA">A vector before this vector.</param>
+        /// <param name="postB">A vector after <paramref name="b"/>.</param>
+        /// <param name="weight">A value on the range of 0.0 to 1.0, representing the amount of interpolation.</param>
+        /// <param name="t"></param>
+        /// <param name="preAT"></param>
+        /// <param name="postBT"></param>
+        /// <returns>The interpolated vector.</returns>
+        public Vector3 CubicInterpolateInTime(Vector3 b, Vector3 preA, Vector3 postB, real_t weight, real_t t, real_t preAT, real_t postBT)
+        {
+            return new Vector3
+            (
+                Mathf.CubicInterpolateInTime(x, b.x, preA.x, postB.x, weight, t, preAT, postBT),
+                Mathf.CubicInterpolateInTime(y, b.y, preA.y, postB.y, weight, t, preAT, postBT),
+                Mathf.CubicInterpolateInTime(z, b.z, preA.z, postB.z, weight, t, preAT, postBT)
+            );
+        }
+
+        /// <summary>
+        /// Returns the point at the given <paramref name="t"/> on a one-dimensional Bezier curve defined by this vector
+        /// and the given <paramref name="control1"/>, <paramref name="control2"/> and <paramref name="end"/> points.
+        /// </summary>
+        /// <param name="control1">Control point that defines the bezier curve.</param>
+        /// <param name="control2">Control point that defines the bezier curve.</param>
+        /// <param name="end">The destination vector.</param>
+        /// <param name="t">A value on the range of 0.0 to 1.0, representing the amount of interpolation.</param>
+        /// <returns>The interpolated vector.</returns>
+        public Vector3 BezierInterpolate(Vector3 control1, Vector3 control2, Vector3 end, real_t t)
+        {
+            // Formula from Wikipedia article on Bezier curves
+            real_t omt = 1 - t;
+            real_t omt2 = omt * omt;
+            real_t omt3 = omt2 * omt;
+            real_t t2 = t * t;
+            real_t t3 = t2 * t;
+
+            return this * omt3 + control1 * omt2 * t * 3 + control2 * omt * t2 * 3 + end * t3;
         }
 
         /// <summary>
@@ -481,7 +521,7 @@ namespace Godot
 #if DEBUG
             if (!normal.IsNormalized())
             {
-                throw new ArgumentException("Argument is not normalized", nameof(normal));
+                throw new ArgumentException("Argument is not normalized.", nameof(normal));
             }
 #endif
             return (2.0f * Dot(normal) * normal) - this;
@@ -494,15 +534,15 @@ namespace Godot
         /// <param name="axis">The vector to rotate around. Must be normalized.</param>
         /// <param name="angle">The angle to rotate by, in radians.</param>
         /// <returns>The rotated vector.</returns>
-        public Vector3 Rotated(Vector3 axis, real_t phi)
+        public Vector3 Rotated(Vector3 axis, real_t angle)
         {
 #if DEBUG
             if (!axis.IsNormalized())
             {
-                throw new ArgumentException("Argument is not normalized", nameof(axis));
+                throw new ArgumentException("Argument is not normalized.", nameof(axis));
             }
 #endif
-            return new Basis(axis, phi).Xform(this);
+            return new Basis(axis, angle) * this;
         }
 
         /// <summary>
@@ -553,7 +593,7 @@ namespace Godot
         ///
         /// This method also handles interpolating the lengths if the input vectors
         /// have different lengths. For the special case of one or both input vectors
-        /// having zero length, this method behaves like <see cref="Lerp"/>.
+        /// having zero length, this method behaves like <see cref="Lerp(Vector3, real_t)"/>.
         /// </summary>
         /// <param name="to">The destination vector for interpolation.</param>
         /// <param name="weight">A value on the range of 0.0 to 1.0, representing the amount of interpolation.</param>
@@ -562,9 +602,10 @@ namespace Godot
         {
             real_t startLengthSquared = LengthSquared();
             real_t endLengthSquared = to.LengthSquared();
-            if (startLengthSquared == 0.0 || endLengthSquared == 0.0) {
-              // Zero length vectors have no angle, so the best we can do is either lerp or throw an error.
-              return Lerp(to, weight);
+            if (startLengthSquared == 0.0 || endLengthSquared == 0.0)
+            {
+                // Zero length vectors have no angle, so the best we can do is either lerp or throw an error.
+                return Lerp(to, weight);
             }
             real_t startLength = Mathf.Sqrt(startLengthSquared);
             real_t resultLength = Mathf.Lerp(startLength, Mathf.Sqrt(endLengthSquared), weight);
@@ -595,22 +636,6 @@ namespace Godot
                 Mathf.Snapped(x, step.x),
                 Mathf.Snapped(y, step.y),
                 Mathf.Snapped(z, step.z)
-            );
-        }
-
-        /// <summary>
-        /// Returns a diagonal matrix with the vector as main diagonal.
-        ///
-        /// This is equivalent to a <see cref="Basis"/> with no rotation or shearing and
-        /// this vector's components set as the scale.
-        /// </summary>
-        /// <returns>A <see cref="Basis"/> with the vector as its main diagonal.</returns>
-        public Basis ToDiagonalMatrix()
-        {
-            return new Basis(
-                x, 0, 0,
-                0, y, 0,
-                0, 0, z
             );
         }
 
@@ -688,17 +713,6 @@ namespace Godot
             this.x = x;
             this.y = y;
             this.z = z;
-        }
-
-        /// <summary>
-        /// Constructs a new <see cref="Vector3"/> from an existing <see cref="Vector3"/>.
-        /// </summary>
-        /// <param name="v">The existing <see cref="Vector3"/>.</param>
-        public Vector3(Vector3 v)
-        {
-            x = v.x;
-            y = v.y;
-            z = v.z;
         }
 
         /// <summary>
@@ -1003,12 +1017,7 @@ namespace Godot
         /// <returns>Whether or not the vector and the object are equal.</returns>
         public override bool Equals(object obj)
         {
-            if (obj is Vector3)
-            {
-                return Equals((Vector3)obj);
-            }
-
-            return false;
+            return obj is Vector3 other && Equals(other);
         }
 
         /// <summary>

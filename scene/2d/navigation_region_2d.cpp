@@ -35,6 +35,7 @@
 #include "core/os/mutex.h"
 #include "scene/resources/world_2d.h"
 #include "servers/navigation_server_2d.h"
+#include "servers/navigation_server_3d.h"
 
 #include "thirdparty/misc/polypartition.h"
 
@@ -353,10 +354,13 @@ void NavigationPolygon::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "outlines", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NO_EDITOR | PROPERTY_USAGE_INTERNAL), "_set_outlines", "_get_outlines");
 }
 
+/////////////////////////////
+
 void NavigationRegion2D::set_enabled(bool p_enabled) {
 	if (enabled == p_enabled) {
 		return;
 	}
+
 	enabled = p_enabled;
 
 	if (!is_inside_tree()) {
@@ -371,9 +375,11 @@ void NavigationRegion2D::set_enabled(bool p_enabled) {
 		NavigationServer2D::get_singleton_mut()->connect("map_changed", callable_mp(this, &NavigationRegion2D::_map_changed));
 	}
 
-	if (Engine::get_singleton()->is_editor_hint() || get_tree()->is_debugging_navigation_hint()) {
-		update();
+#ifdef DEBUG_ENABLED
+	if (Engine::get_singleton()->is_editor_hint() || NavigationServer3D::get_singleton()->get_debug_enabled()) {
+		queue_redraw();
 	}
+#endif // DEBUG_ENABLED
 }
 
 bool NavigationRegion2D::is_enabled() const {
@@ -381,35 +387,50 @@ bool NavigationRegion2D::is_enabled() const {
 }
 
 void NavigationRegion2D::set_navigation_layers(uint32_t p_navigation_layers) {
-	NavigationServer2D::get_singleton()->region_set_navigation_layers(region, p_navigation_layers);
+	if (navigation_layers == p_navigation_layers) {
+		return;
+	}
+
+	navigation_layers = p_navigation_layers;
+
+	NavigationServer2D::get_singleton()->region_set_navigation_layers(region, navigation_layers);
 }
 
 uint32_t NavigationRegion2D::get_navigation_layers() const {
-	return NavigationServer2D::get_singleton()->region_get_navigation_layers(region);
+	return navigation_layers;
 }
 
 void NavigationRegion2D::set_navigation_layer_value(int p_layer_number, bool p_value) {
 	ERR_FAIL_COND_MSG(p_layer_number < 1, "Navigation layer number must be between 1 and 32 inclusive.");
 	ERR_FAIL_COND_MSG(p_layer_number > 32, "Navigation layer number must be between 1 and 32 inclusive.");
+
 	uint32_t _navigation_layers = get_navigation_layers();
+
 	if (p_value) {
 		_navigation_layers |= 1 << (p_layer_number - 1);
 	} else {
 		_navigation_layers &= ~(1 << (p_layer_number - 1));
 	}
+
 	set_navigation_layers(_navigation_layers);
 }
 
 bool NavigationRegion2D::get_navigation_layer_value(int p_layer_number) const {
 	ERR_FAIL_COND_V_MSG(p_layer_number < 1, false, "Navigation layer number must be between 1 and 32 inclusive.");
 	ERR_FAIL_COND_V_MSG(p_layer_number > 32, false, "Navigation layer number must be between 1 and 32 inclusive.");
+
 	return get_navigation_layers() & (1 << (p_layer_number - 1));
 }
 
 void NavigationRegion2D::set_enter_cost(real_t p_enter_cost) {
 	ERR_FAIL_COND_MSG(p_enter_cost < 0.0, "The enter_cost must be positive.");
-	enter_cost = MAX(p_enter_cost, 0.0);
-	NavigationServer2D::get_singleton()->region_set_enter_cost(region, p_enter_cost);
+	if (Math::is_equal_approx(enter_cost, p_enter_cost)) {
+		return;
+	}
+
+	enter_cost = p_enter_cost;
+
+	NavigationServer2D::get_singleton()->region_set_enter_cost(region, enter_cost);
 }
 
 real_t NavigationRegion2D::get_enter_cost() const {
@@ -418,8 +439,13 @@ real_t NavigationRegion2D::get_enter_cost() const {
 
 void NavigationRegion2D::set_travel_cost(real_t p_travel_cost) {
 	ERR_FAIL_COND_MSG(p_travel_cost < 0.0, "The travel_cost must be positive.");
-	travel_cost = MAX(p_travel_cost, 0.0);
-	NavigationServer2D::get_singleton()->region_set_enter_cost(region, travel_cost);
+	if (Math::is_equal_approx(travel_cost, p_travel_cost)) {
+		return;
+	}
+
+	travel_cost = p_travel_cost;
+
+	NavigationServer2D::get_singleton()->region_set_travel_cost(region, travel_cost);
 }
 
 real_t NavigationRegion2D::get_travel_cost() const {
@@ -430,7 +456,6 @@ RID NavigationRegion2D::get_region_rid() const {
 	return region;
 }
 
-/////////////////////////////
 #ifdef TOOLS_ENABLED
 Rect2 NavigationRegion2D::_edit_get_rect() const {
 	return navpoly.is_valid() ? navpoly->_edit_get_rect() : Rect2();
@@ -462,7 +487,8 @@ void NavigationRegion2D::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_DRAW: {
-			if (is_inside_tree() && (Engine::get_singleton()->is_editor_hint() || get_tree()->is_debugging_navigation_hint()) && navpoly.is_valid()) {
+#ifdef DEBUG_ENABLED
+			if (is_inside_tree() && (Engine::get_singleton()->is_editor_hint() || NavigationServer3D::get_singleton()->get_debug_enabled()) && navpoly.is_valid()) {
 				Vector<Vector2> verts = navpoly->get_vertices();
 				if (verts.size() < 3) {
 					return;
@@ -470,11 +496,11 @@ void NavigationRegion2D::_notification(int p_what) {
 
 				Color color;
 				if (enabled) {
-					color = get_tree()->get_debug_navigation_color();
+					color = NavigationServer3D::get_singleton()->get_debug_navigation_geometry_face_color();
 				} else {
-					color = get_tree()->get_debug_navigation_disabled_color();
+					color = NavigationServer3D::get_singleton()->get_debug_navigation_geometry_face_disabled_color();
 				}
-				Color doors_color = color.lightened(0.2);
+				Color doors_color = NavigationServer3D::get_singleton()->get_debug_navigation_edge_connection_color();
 
 				RandomPCG rand;
 
@@ -490,7 +516,7 @@ void NavigationRegion2D::_notification(int p_what) {
 
 					// Generate the polygon color, slightly randomly modified from the settings one.
 					Color random_variation_color;
-					random_variation_color.set_hsv(color.get_h() + rand.random(-1.0, 1.0) * 0.05, color.get_s(), color.get_v() + rand.random(-1.0, 1.0) * 0.1);
+					random_variation_color.set_hsv(color.get_h() + rand.random(-1.0, 1.0) * 0.1, color.get_s(), color.get_v() + rand.random(-1.0, 1.0) * 0.2);
 					random_variation_color.a = color.a;
 					Vector<Color> colors;
 					colors.push_back(random_variation_color);
@@ -516,6 +542,7 @@ void NavigationRegion2D::_notification(int p_what) {
 					draw_arc(b, radius, angle - Math_PI / 2.0, angle + Math_PI / 2.0, 10, doors_color);
 				}
 			}
+#endif // DEBUG_ENABLED
 		} break;
 	}
 }
@@ -546,20 +573,23 @@ Ref<NavigationPolygon> NavigationRegion2D::get_navigation_polygon() const {
 
 void NavigationRegion2D::_navpoly_changed() {
 	if (is_inside_tree() && (Engine::get_singleton()->is_editor_hint() || get_tree()->is_debugging_navigation_hint())) {
-		update();
+		queue_redraw();
 	}
 	if (navpoly.is_valid()) {
 		NavigationServer2D::get_singleton()->region_set_navpoly(region, navpoly);
 	}
 }
+
 void NavigationRegion2D::_map_changed(RID p_map) {
-	if (enabled && get_world_2d()->get_navigation_map() == p_map) {
-		update();
+#ifdef DEBUG_ENABLED
+	if (is_inside_tree() && get_world_2d()->get_navigation_map() == p_map) {
+		queue_redraw();
 	}
+#endif // DEBUG_ENABLED
 }
 
-TypedArray<String> NavigationRegion2D::get_configuration_warnings() const {
-	TypedArray<String> warnings = Node2D::get_configuration_warnings();
+PackedStringArray NavigationRegion2D::get_configuration_warnings() const {
+	PackedStringArray warnings = Node2D::get_configuration_warnings();
 
 	if (is_visible_in_tree() && is_inside_tree()) {
 		if (!navpoly.is_valid()) {
@@ -605,8 +635,18 @@ NavigationRegion2D::NavigationRegion2D() {
 	region = NavigationServer2D::get_singleton()->region_create();
 	NavigationServer2D::get_singleton()->region_set_enter_cost(region, get_enter_cost());
 	NavigationServer2D::get_singleton()->region_set_travel_cost(region, get_travel_cost());
+
+#ifdef DEBUG_ENABLED
+	NavigationServer3D::get_singleton_mut()->connect("map_changed", callable_mp(this, &NavigationRegion2D::_map_changed));
+	NavigationServer3D::get_singleton_mut()->connect("navigation_debug_changed", callable_mp(this, &NavigationRegion2D::_map_changed));
+#endif // DEBUG_ENABLED
 }
 
 NavigationRegion2D::~NavigationRegion2D() {
 	NavigationServer2D::get_singleton()->free(region);
+
+#ifdef DEBUG_ENABLED
+	NavigationServer3D::get_singleton_mut()->disconnect("map_changed", callable_mp(this, &NavigationRegion2D::_map_changed));
+	NavigationServer3D::get_singleton_mut()->disconnect("navigation_debug_changed", callable_mp(this, &NavigationRegion2D::_map_changed));
+#endif // DEBUG_ENABLED
 }

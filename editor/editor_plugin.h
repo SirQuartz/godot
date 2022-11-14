@@ -32,32 +32,33 @@
 #define EDITOR_PLUGIN_H
 
 #include "core/io/config_file.h"
-#include "core/object/undo_redo.h"
-#include "editor/debugger/editor_debugger_node.h"
-#include "editor/editor_inspector.h"
-#include "editor/editor_translation_parser.h"
-#include "editor/import/editor_import_plugin.h"
-#include "editor/import/resource_importer_scene.h"
-#include "editor/script_create_dialog.h"
 #include "scene/3d/camera_3d.h"
-#include "scene/main/node.h"
-#include "scene/resources/texture.h"
+#include "scene/gui/control.h"
 
 class Node3D;
-class Camera3D;
+class Button;
+class PopupMenu;
 class EditorCommandPalette;
-class EditorSelection;
 class EditorExport;
-class EditorSettings;
-class EditorImportPlugin;
 class EditorExportPlugin;
-class EditorNode3DGizmoPlugin;
-class EditorResourcePreview;
 class EditorFileSystem;
-class EditorToolAddons;
+class EditorImportPlugin;
+class EditorInspector;
+class EditorInspectorPlugin;
+class EditorNode3DGizmoPlugin;
 class EditorPaths;
+class EditorResourcePreview;
+class EditorSceneFormatImporter;
+class EditorScenePostImportPlugin;
+class EditorSelection;
+class EditorSettings;
+class EditorToolAddons;
+class EditorTranslationParserPlugin;
+class EditorUndoRedoManager;
 class FileSystemDock;
+class ScriptCreateDialog;
 class ScriptEditor;
+class VBoxContainer;
 
 class EditorInterface : public Node {
 	GDCLASS(EditorInterface, Node);
@@ -66,12 +67,12 @@ protected:
 	static void _bind_methods();
 	static EditorInterface *singleton;
 
-	Array _make_mesh_previews(const Array &p_meshes, int p_preview_size);
+	TypedArray<Texture2D> _make_mesh_previews(const TypedArray<Mesh> &p_meshes, int p_preview_size);
 
 public:
 	static EditorInterface *get_singleton() { return singleton; }
 
-	Control *get_editor_main_control();
+	VBoxContainer *get_editor_main_screen();
 	void edit_resource(const Ref<Resource> &p_resource);
 	void edit_node(Node *p_node);
 	void edit_script(const Ref<Script> &p_script, int p_line = -1, int p_col = 0, bool p_grab_focus = true);
@@ -86,7 +87,7 @@ public:
 	String get_playing_scene() const;
 
 	Node *get_edited_scene_root();
-	Array get_open_scenes() const;
+	PackedStringArray get_open_scenes() const;
 	ScriptEditor *get_script_editor();
 
 	EditorCommandPalette *get_command_palette() const;
@@ -112,10 +113,14 @@ public:
 	void set_plugin_enabled(const String &p_plugin, bool p_enabled);
 	bool is_plugin_enabled(const String &p_plugin) const;
 
+	void set_movie_maker_enabled(bool p_enabled);
+	bool is_movie_maker_enabled() const;
+
 	EditorInspector *get_inspector() const;
 
 	Error save_scene();
 	void save_scene_as(const String &p_scene, bool p_with_preview = true);
+	void restart_editor(bool p_save = true);
 
 	Vector<Ref<Texture2D>> make_mesh_previews(const Vector<Ref<Mesh>> &p_meshes, Vector<Transform3D> *p_transforms, int p_preview_size);
 
@@ -129,9 +134,6 @@ public:
 class EditorPlugin : public Node {
 	GDCLASS(EditorPlugin, Node);
 	friend class EditorData;
-	UndoRedo *undo_redo = nullptr;
-
-	UndoRedo *_get_undo_redo() { return undo_redo; }
 
 	bool input_event_forwarding_always_enabled = false;
 	bool force_draw_over_forwarding_enabled = false;
@@ -144,7 +146,7 @@ protected:
 	void _notification(int p_what);
 
 	static void _bind_methods();
-	UndoRedo &get_undo_redo() { return *undo_redo; }
+	Ref<EditorUndoRedoManager> get_undo_redo();
 
 	void add_custom_type(const String &p_type, const String &p_base, const Ref<Script> &p_script, const Ref<Texture2D> &p_icon);
 	void remove_custom_type(const String &p_type);
@@ -184,7 +186,7 @@ public:
 		CONTAINER_CANVAS_EDITOR_SIDE_LEFT,
 		CONTAINER_CANVAS_EDITOR_SIDE_RIGHT,
 		CONTAINER_CANVAS_EDITOR_BOTTOM,
-		CONTAINER_PROPERTY_EDITOR_BOTTOM,
+		CONTAINER_INSPECTOR_BOTTOM,
 		CONTAINER_PROJECT_SETTING_TAB_LEFT,
 		CONTAINER_PROJECT_SETTING_TAB_RIGHT,
 	};
@@ -204,7 +206,7 @@ public:
 	enum AfterGUIInput {
 		AFTER_GUI_INPUT_PASS,
 		AFTER_GUI_INPUT_STOP,
-		AFTER_GUI_INPUT_DESELECT
+		AFTER_GUI_INPUT_CUSTOM
 	};
 
 	//TODO: send a resource for editing to the editor node?
@@ -237,9 +239,9 @@ public:
 	virtual void forward_canvas_draw_over_viewport(Control *p_overlay);
 	virtual void forward_canvas_force_draw_over_viewport(Control *p_overlay);
 
-	virtual EditorPlugin::AfterGUIInput forward_spatial_gui_input(Camera3D *p_camera, const Ref<InputEvent> &p_event);
-	virtual void forward_spatial_draw_over_viewport(Control *p_overlay);
-	virtual void forward_spatial_force_draw_over_viewport(Control *p_overlay);
+	virtual EditorPlugin::AfterGUIInput forward_3d_gui_input(Camera3D *p_camera, const Ref<InputEvent> &p_event);
+	virtual void forward_3d_draw_over_viewport(Control *p_overlay);
+	virtual void forward_3d_force_draw_over_viewport(Control *p_overlay);
 
 	virtual String get_name() const;
 	virtual const Ref<Texture2D> get_icon() const;
@@ -285,8 +287,8 @@ public:
 	void add_export_plugin(const Ref<EditorExportPlugin> &p_exporter);
 	void remove_export_plugin(const Ref<EditorExportPlugin> &p_exporter);
 
-	void add_spatial_gizmo_plugin(const Ref<EditorNode3DGizmoPlugin> &p_gizmo_plugin);
-	void remove_spatial_gizmo_plugin(const Ref<EditorNode3DGizmoPlugin> &p_gizmo_plugin);
+	void add_node_3d_gizmo_plugin(const Ref<EditorNode3DGizmoPlugin> &p_gizmo_plugin);
+	void remove_node_3d_gizmo_plugin(const Ref<EditorNode3DGizmoPlugin> &p_gizmo_plugin);
 
 	void add_inspector_plugin(const Ref<EditorInspectorPlugin> &p_plugin);
 	void remove_inspector_plugin(const Ref<EditorInspectorPlugin> &p_plugin);
@@ -312,6 +314,7 @@ public:
 
 VARIANT_ENUM_CAST(EditorPlugin::CustomControlContainer);
 VARIANT_ENUM_CAST(EditorPlugin::DockSlot);
+VARIANT_ENUM_CAST(EditorPlugin::AfterGUIInput);
 
 typedef EditorPlugin *(*EditorPluginCreateFunc)();
 
@@ -346,4 +349,4 @@ public:
 	}
 };
 
-#endif
+#endif // EDITOR_PLUGIN_H

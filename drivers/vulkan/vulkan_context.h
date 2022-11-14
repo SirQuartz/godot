@@ -69,6 +69,15 @@ public:
 		uint32_t max_instance_count;
 	};
 
+	struct VRSCapabilities {
+		bool pipeline_vrs_supported; // We can specify our fragment rate on a pipeline level.
+		bool primitive_vrs_supported; // We can specify our fragment rate on each drawcall.
+		bool attachment_vrs_supported; // We can provide a density map attachment on our framebuffer.
+
+		Size2i min_texel_size;
+		Size2i max_texel_size;
+	};
+
 	struct ShaderCapabilities {
 		bool shader_float16_is_supported;
 		bool shader_int8_is_supported;
@@ -98,12 +107,13 @@ private:
 	bool device_initialized = false;
 	bool inst_initialized = false;
 
-	// Vulkan 1.0 doesn't return version info so we assume this by default until we know otherwise
+	// Vulkan 1.0 doesn't return version info so we assume this by default until we know otherwise.
 	uint32_t vulkan_major = 1;
 	uint32_t vulkan_minor = 0;
 	uint32_t vulkan_patch = 0;
 	SubgroupCapabilities subgroup_capabilities;
 	MultiviewCapabilities multiview_capabilities;
+	VRSCapabilities vrs_capabilities;
 	ShaderCapabilities shader_capabilities;
 	StorageBufferCapabilities storage_buffer_capabilities;
 
@@ -117,8 +127,8 @@ private:
 
 	// Present queue.
 	bool queues_initialized = false;
-	uint32_t graphics_queue_family_index = 0;
-	uint32_t present_queue_family_index = 0;
+	uint32_t graphics_queue_family_index = UINT32_MAX;
+	uint32_t present_queue_family_index = UINT32_MAX;
 	bool separate_present_queue = false;
 	VkQueue graphics_queue = VK_NULL_HANDLE;
 	VkQueue present_queue = VK_NULL_HANDLE;
@@ -178,6 +188,7 @@ private:
 	uint32_t enabled_extension_count = 0;
 	const char *extension_names[MAX_EXTENSIONS];
 	bool enabled_debug_utils = false;
+	bool has_renderpass2_ext = false;
 
 	/**
 	 * True if VK_EXT_debug_report extension is used. VK_EXT_debug_report is deprecated but it is
@@ -206,6 +217,7 @@ private:
 	PFN_vkQueuePresentKHR fpQueuePresentKHR = nullptr;
 	PFN_vkGetRefreshCycleDurationGOOGLE fpGetRefreshCycleDurationGOOGLE = nullptr;
 	PFN_vkGetPastPresentationTimingGOOGLE fpGetPastPresentationTimingGOOGLE = nullptr;
+	PFN_vkCreateRenderPass2KHR fpCreateRenderPass2KHR = nullptr;
 
 	VkDebugUtilsMessengerEXT dbg_messenger = VK_NULL_HANDLE;
 	VkDebugReportCallbackEXT dbg_debug_report = VK_NULL_HANDLE;
@@ -246,6 +258,8 @@ private:
 	Error _create_swap_chain();
 	Error _create_semaphores();
 
+	Vector<VkAttachmentReference> _convert_VkAttachmentReference2(uint32_t p_count, const VkAttachmentReference2 *p_refs);
+
 protected:
 	virtual const char *_get_platform_surface_extension() const = 0;
 
@@ -255,13 +269,20 @@ protected:
 
 	Error _get_preferred_validation_layers(uint32_t *count, const char *const **names);
 
+	virtual VkExtent2D _compute_swapchain_extent(const VkSurfaceCapabilitiesKHR &p_surf_capabilities, int *p_window_width, int *p_window_height) const;
+
 public:
+	// Extension calls.
+	bool supports_renderpass2() const { return has_renderpass2_ext; }
+	VkResult vkCreateRenderPass2KHR(VkDevice p_device, const VkRenderPassCreateInfo2 *p_create_info, const VkAllocationCallbacks *p_allocator, VkRenderPass *p_render_pass);
+
 	uint32_t get_vulkan_major() const { return vulkan_major; };
 	uint32_t get_vulkan_minor() const { return vulkan_minor; };
-	SubgroupCapabilities get_subgroup_capabilities() const { return subgroup_capabilities; };
-	MultiviewCapabilities get_multiview_capabilities() const { return multiview_capabilities; };
-	ShaderCapabilities get_shader_capabilities() const { return shader_capabilities; };
-	StorageBufferCapabilities get_storage_buffer_capabilities() const { return storage_buffer_capabilities; };
+	const SubgroupCapabilities &get_subgroup_capabilities() const { return subgroup_capabilities; };
+	const MultiviewCapabilities &get_multiview_capabilities() const { return multiview_capabilities; };
+	const VRSCapabilities &get_vrs_capabilities() const { return vrs_capabilities; };
+	const ShaderCapabilities &get_shader_capabilities() const { return shader_capabilities; };
+	const StorageBufferCapabilities &get_storage_buffer_capabilities() const { return storage_buffer_capabilities; };
 
 	VkDevice get_device();
 	VkPhysicalDevice get_physical_device();
@@ -289,8 +310,8 @@ public:
 	VkFormat get_screen_format() const;
 	VkPhysicalDeviceLimits get_device_limits() const;
 
-	void set_setup_buffer(const VkCommandBuffer &pCommandBuffer);
-	void append_command_buffer(const VkCommandBuffer &pCommandBuffer);
+	void set_setup_buffer(VkCommandBuffer p_command_buffer);
+	void append_command_buffer(VkCommandBuffer p_command_buffer);
 	void resize_notify();
 	void flush(bool p_flush_setup = false, bool p_flush_pending = false);
 	Error prepare_buffers();
@@ -315,4 +336,4 @@ public:
 	virtual ~VulkanContext();
 };
 
-#endif // VULKAN_DEVICE_H
+#endif // VULKAN_CONTEXT_H

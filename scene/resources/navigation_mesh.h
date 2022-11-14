@@ -33,8 +33,6 @@
 
 #include "scene/resources/mesh.h"
 
-class Mesh;
-
 class NavigationMesh : public Resource {
 	GDCLASS(NavigationMesh, Resource);
 
@@ -60,7 +58,7 @@ class NavigationMesh : public Resource {
 
 protected:
 	static void _bind_methods();
-	virtual void _validate_property(PropertyInfo &property) const override;
+	void _validate_property(PropertyInfo &p_property) const;
 
 #ifndef DISABLE_DEPRECATED
 	bool _set(const StringName &p_name, const Variant &p_value);
@@ -204,7 +202,9 @@ public:
 	Vector<int> get_polygon(int p_idx);
 	void clear_polygons();
 
-	Ref<Mesh> get_debug_mesh();
+#ifdef DEBUG_ENABLED
+	Ref<ArrayMesh> get_debug_mesh();
+#endif // DEBUG_ENABLED
 
 	NavigationMesh();
 };

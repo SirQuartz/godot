@@ -753,40 +753,56 @@ struct _VariantCall {
 	static PackedInt32Array func_PackedByteArray_decode_s32_array(PackedByteArray *p_instance) {
 		uint64_t size = p_instance->size();
 		PackedInt32Array dest;
-		ERR_FAIL_COND_V_MSG(size < sizeof(int32_t), dest, "Size didn't match array of size int32_t, maybe you are trying to convert to the wrong type?");
+		if (size == 0) {
+			return dest;
+		}
+		ERR_FAIL_COND_V_MSG(size % sizeof(int32_t), dest, "PackedByteArray size must be a multiple of 4 (size of 32-bit integer) to convert to PackedInt32Array.");
 		const uint8_t *r = p_instance->ptr();
 		dest.resize(size / sizeof(int32_t));
-		memcpy(dest.ptrw(), r, size);
+		ERR_FAIL_COND_V(dest.size() == 0, dest); // Avoid UB in case resize failed.
+		memcpy(dest.ptrw(), r, dest.size() * sizeof(int32_t));
 		return dest;
 	}
 
 	static PackedInt64Array func_PackedByteArray_decode_s64_array(PackedByteArray *p_instance) {
 		uint64_t size = p_instance->size();
 		PackedInt64Array dest;
-		ERR_FAIL_COND_V_MSG(size < sizeof(int64_t), dest, "Size didn't match array of size int64_t, maybe you are trying to convert to the wrong type?");
+		if (size == 0) {
+			return dest;
+		}
+		ERR_FAIL_COND_V_MSG(size % sizeof(int64_t), dest, "PackedByteArray size must be a multiple of 8 (size of 64-bit integer) to convert to PackedInt64Array.");
 		const uint8_t *r = p_instance->ptr();
 		dest.resize(size / sizeof(int64_t));
-		memcpy(dest.ptrw(), r, size);
+		ERR_FAIL_COND_V(dest.size() == 0, dest); // Avoid UB in case resize failed.
+		memcpy(dest.ptrw(), r, dest.size() * sizeof(int64_t));
 		return dest;
 	}
 
 	static PackedFloat32Array func_PackedByteArray_decode_float_array(PackedByteArray *p_instance) {
 		uint64_t size = p_instance->size();
 		PackedFloat32Array dest;
-		ERR_FAIL_COND_V_MSG(size < sizeof(float), dest, "Size didn't match array of size float, maybe you are trying to convert to the wrong type?");
+		if (size == 0) {
+			return dest;
+		}
+		ERR_FAIL_COND_V_MSG(size % sizeof(float), dest, "PackedByteArray size must be a multiple of 4 (size of 32-bit float) to convert to PackedFloat32Array.");
 		const uint8_t *r = p_instance->ptr();
 		dest.resize(size / sizeof(float));
-		memcpy(dest.ptrw(), r, size);
+		ERR_FAIL_COND_V(dest.size() == 0, dest); // Avoid UB in case resize failed.
+		memcpy(dest.ptrw(), r, dest.size() * sizeof(float));
 		return dest;
 	}
 
 	static PackedFloat64Array func_PackedByteArray_decode_double_array(PackedByteArray *p_instance) {
 		uint64_t size = p_instance->size();
 		PackedFloat64Array dest;
-		ERR_FAIL_COND_V_MSG(size < sizeof(double), dest, "Size didn't match array of size double, maybe you are trying to convert to the wrong type?");
+		if (size == 0) {
+			return dest;
+		}
+		ERR_FAIL_COND_V_MSG(size % sizeof(double), dest, "PackedByteArray size must be a multiple of 8 (size of 64-bit double) to convert to PackedFloat64Array.");
 		const uint8_t *r = p_instance->ptr();
 		dest.resize(size / sizeof(double));
-		memcpy(dest.ptrw(), r, size);
+		ERR_FAIL_COND_V(dest.size() == 0, dest); // Avoid UB in case resize failed.
+		memcpy(dest.ptrw(), r, dest.size() * sizeof(double));
 		return dest;
 	}
 
@@ -879,17 +895,17 @@ struct _VariantCall {
 
 	static void func_Callable_call(Variant *v, const Variant **p_args, int p_argcount, Variant &r_ret, Callable::CallError &r_error) {
 		Callable *callable = VariantGetInternalPtr<Callable>::get_ptr(v);
-		callable->call(p_args, p_argcount, r_ret, r_error);
+		callable->callp(p_args, p_argcount, r_ret, r_error);
 	}
 
 	static void func_Callable_call_deferred(Variant *v, const Variant **p_args, int p_argcount, Variant &r_ret, Callable::CallError &r_error) {
 		Callable *callable = VariantGetInternalPtr<Callable>::get_ptr(v);
-		callable->call_deferred(p_args, p_argcount);
+		callable->call_deferredp(p_args, p_argcount);
 	}
 
 	static void func_Callable_rpc(Variant *v, const Variant **p_args, int p_argcount, Variant &r_ret, Callable::CallError &r_error) {
 		Callable *callable = VariantGetInternalPtr<Callable>::get_ptr(v);
-		callable->rpc(0, p_args, p_argcount, r_error);
+		callable->rpcp(0, p_args, p_argcount, r_error);
 	}
 
 	static void func_Callable_rpc_id(Variant *v, const Variant **p_args, int p_argcount, Variant &r_ret, Callable::CallError &r_error) {
@@ -904,13 +920,13 @@ struct _VariantCall {
 			r_error.expected = Variant::INT;
 		} else {
 			Callable *callable = VariantGetInternalPtr<Callable>::get_ptr(v);
-			callable->rpc(*p_args[0], &p_args[1], p_argcount - 1, r_error);
+			callable->rpcp(*p_args[0], &p_args[1], p_argcount - 1, r_error);
 		}
 	}
 
 	static void func_Callable_bind(Variant *v, const Variant **p_args, int p_argcount, Variant &r_ret, Callable::CallError &r_error) {
 		Callable *callable = VariantGetInternalPtr<Callable>::get_ptr(v);
-		r_ret = callable->bind(p_args, p_argcount);
+		r_ret = callable->bindp(p_args, p_argcount);
 	}
 
 	static void func_Signal_emit(Variant *v, const Variant **p_args, int p_argcount, Variant &r_ret, Callable::CallError &r_error) {
@@ -1031,6 +1047,37 @@ void Variant::callp(const StringName &p_method, const Variant **p_args, int p_ar
 #endif
 		r_ret = _get_obj().obj->callp(p_method, p_args, p_argcount, r_error);
 
+	} else {
+		r_error.error = Callable::CallError::CALL_OK;
+
+		const VariantBuiltInMethodInfo *imf = builtin_method_info[type].lookup_ptr(p_method);
+
+		if (!imf) {
+			r_error.error = Callable::CallError::CALL_ERROR_INVALID_METHOD;
+			return;
+		}
+
+		imf->call(this, p_args, p_argcount, r_ret, imf->default_arguments, r_error);
+	}
+}
+
+void Variant::call_const(const StringName &p_method, const Variant **p_args, int p_argcount, Variant &r_ret, Callable::CallError &r_error) {
+	if (type == Variant::OBJECT) {
+		//call object
+		Object *obj = _get_obj().obj;
+		if (!obj) {
+			r_error.error = Callable::CallError::CALL_ERROR_INSTANCE_IS_NULL;
+			return;
+		}
+#ifdef DEBUG_ENABLED
+		if (EngineDebugger::is_active() && !_get_obj().id.is_ref_counted() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
+			r_error.error = Callable::CallError::CALL_ERROR_INSTANCE_IS_NULL;
+			return;
+		}
+
+#endif
+		r_ret = _get_obj().obj->call_const(p_method, p_args, p_argcount, r_error);
+
 		//else if (type==Variant::METHOD) {
 	} else {
 		r_error.error = Callable::CallError::CALL_OK;
@@ -1039,6 +1086,11 @@ void Variant::callp(const StringName &p_method, const Variant **p_args, int p_ar
 
 		if (!imf) {
 			r_error.error = Callable::CallError::CALL_ERROR_INVALID_METHOD;
+			return;
+		}
+
+		if (!imf->is_const) {
+			r_error.error = Callable::CallError::CALL_ERROR_METHOD_NOT_CONST;
 			return;
 		}
 
@@ -1454,8 +1506,11 @@ static void _register_variant_builtin_methods() {
 	bind_method(String, repeat, sarray("count"), varray());
 	bind_method(String, insert, sarray("position", "what"), varray());
 	bind_method(String, capitalize, sarray(), varray());
-	bind_method(String, split, sarray("delimiter", "allow_empty", "maxsplit"), varray(true, 0));
-	bind_method(String, rsplit, sarray("delimiter", "allow_empty", "maxsplit"), varray(true, 0));
+	bind_method(String, to_camel_case, sarray(), varray());
+	bind_method(String, to_pascal_case, sarray(), varray());
+	bind_method(String, to_snake_case, sarray(), varray());
+	bind_method(String, split, sarray("delimiter", "allow_empty", "maxsplit"), varray("", true, 0));
+	bind_method(String, rsplit, sarray("delimiter", "allow_empty", "maxsplit"), varray("", true, 0));
 	bind_method(String, split_floats, sarray("delimiter", "allow_empty"), varray(true));
 	bind_method(String, join, sarray("parts"), varray());
 
@@ -1471,7 +1526,7 @@ static void _register_variant_builtin_methods() {
 	bind_method(String, rstrip, sarray("chars"), varray());
 	bind_method(String, get_extension, sarray(), varray());
 	bind_method(String, get_basename, sarray(), varray());
-	bind_method(String, plus_file, sarray("file"), varray());
+	bind_method(String, path_join, sarray("file"), varray());
 	bind_method(String, unicode_at, sarray("at"), varray());
 	bind_method(String, indent, sarray("prefix"), varray());
 	bind_method(String, dedent, sarray(), varray());
@@ -1550,12 +1605,16 @@ static void _register_variant_builtin_methods() {
 	bind_method(Vector2, normalized, sarray(), varray());
 	bind_method(Vector2, is_normalized, sarray(), varray());
 	bind_method(Vector2, is_equal_approx, sarray("to"), varray());
+	bind_method(Vector2, is_zero_approx, sarray(), varray());
+	bind_method(Vector2, is_finite, sarray(), varray());
 	bind_method(Vector2, posmod, sarray("mod"), varray());
 	bind_method(Vector2, posmodv, sarray("modv"), varray());
 	bind_method(Vector2, project, sarray("b"), varray());
 	bind_method(Vector2, lerp, sarray("to", "weight"), varray());
 	bind_method(Vector2, slerp, sarray("to", "weight"), varray());
 	bind_method(Vector2, cubic_interpolate, sarray("b", "pre_a", "post_b", "weight"), varray());
+	bind_method(Vector2, cubic_interpolate_in_time, sarray("b", "pre_a", "post_b", "weight", "b_t", "pre_a_t", "post_b_t"), varray());
+	bind_method(Vector2, bezier_interpolate, sarray("control_1", "control_2", "end", "t"), varray());
 	bind_method(Vector2, max_axis_index, sarray(), varray());
 	bind_method(Vector2, min_axis_index, sarray(), varray());
 	bind_method(Vector2, move_toward, sarray("to", "delta"), varray());
@@ -1592,9 +1651,10 @@ static void _register_variant_builtin_methods() {
 
 	bind_method(Rect2, get_center, sarray(), varray());
 	bind_method(Rect2, get_area, sarray(), varray());
-	bind_method(Rect2, has_no_area, sarray(), varray());
+	bind_method(Rect2, has_area, sarray(), varray());
 	bind_method(Rect2, has_point, sarray("point"), varray());
 	bind_method(Rect2, is_equal_approx, sarray("rect"), varray());
+	bind_method(Rect2, is_finite, sarray(), varray());
 	bind_method(Rect2, intersects, sarray("b", "include_borders"), varray(false));
 	bind_method(Rect2, encloses, sarray("b"), varray());
 	bind_method(Rect2, intersection, sarray("b"), varray());
@@ -1609,7 +1669,7 @@ static void _register_variant_builtin_methods() {
 
 	bind_method(Rect2i, get_center, sarray(), varray());
 	bind_method(Rect2i, get_area, sarray(), varray());
-	bind_method(Rect2i, has_no_area, sarray(), varray());
+	bind_method(Rect2i, has_area, sarray(), varray());
 	bind_method(Rect2i, has_point, sarray("point"), varray());
 	bind_method(Rect2i, intersects, sarray("b"), varray());
 	bind_method(Rect2i, encloses, sarray("b"), varray());
@@ -1636,6 +1696,8 @@ static void _register_variant_builtin_methods() {
 	bind_method(Vector3, normalized, sarray(), varray());
 	bind_method(Vector3, is_normalized, sarray(), varray());
 	bind_method(Vector3, is_equal_approx, sarray("to"), varray());
+	bind_method(Vector3, is_zero_approx, sarray(), varray());
+	bind_method(Vector3, is_finite, sarray(), varray());
 	bind_method(Vector3, inverse, sarray(), varray());
 	bind_method(Vector3, clamp, sarray("min", "max"), varray());
 	bind_method(Vector3, snapped, sarray("step"), varray());
@@ -1643,6 +1705,8 @@ static void _register_variant_builtin_methods() {
 	bind_method(Vector3, lerp, sarray("to", "weight"), varray());
 	bind_method(Vector3, slerp, sarray("to", "weight"), varray());
 	bind_method(Vector3, cubic_interpolate, sarray("b", "pre_a", "post_b", "weight"), varray());
+	bind_method(Vector3, cubic_interpolate_in_time, sarray("b", "pre_a", "post_b", "weight", "b_t", "pre_a_t", "post_b_t"), varray());
+	bind_method(Vector3, bezier_interpolate, sarray("control_1", "control_2", "end", "t"), varray());
 	bind_method(Vector3, move_toward, sarray("to", "delta"), varray());
 	bind_method(Vector3, dot, sarray("with"), varray());
 	bind_method(Vector3, cross, sarray("with"), varray());
@@ -1671,14 +1735,54 @@ static void _register_variant_builtin_methods() {
 	bind_method(Vector3i, abs, sarray(), varray());
 	bind_method(Vector3i, clamp, sarray("min", "max"), varray());
 
+	/* Vector4 */
+
+	bind_method(Vector4, min_axis_index, sarray(), varray());
+	bind_method(Vector4, max_axis_index, sarray(), varray());
+	bind_method(Vector4, length, sarray(), varray());
+	bind_method(Vector4, length_squared, sarray(), varray());
+	bind_method(Vector4, abs, sarray(), varray());
+	bind_method(Vector4, sign, sarray(), varray());
+	bind_method(Vector4, floor, sarray(), varray());
+	bind_method(Vector4, ceil, sarray(), varray());
+	bind_method(Vector4, round, sarray(), varray());
+	bind_method(Vector4, lerp, sarray("to", "weight"), varray());
+	bind_method(Vector4, cubic_interpolate, sarray("b", "pre_a", "post_b", "weight"), varray());
+	bind_method(Vector4, cubic_interpolate_in_time, sarray("b", "pre_a", "post_b", "weight", "b_t", "pre_a_t", "post_b_t"), varray());
+	bind_method(Vector4, posmod, sarray("mod"), varray());
+	bind_method(Vector4, posmodv, sarray("modv"), varray());
+	bind_method(Vector4, snapped, sarray("step"), varray());
+	bind_method(Vector4, clamp, sarray("min", "max"), varray());
+	bind_method(Vector4, normalized, sarray(), varray());
+	bind_method(Vector4, is_normalized, sarray(), varray());
+	bind_method(Vector4, direction_to, sarray("to"), varray());
+	bind_method(Vector4, distance_to, sarray("to"), varray());
+	bind_method(Vector4, distance_squared_to, sarray("to"), varray());
+	bind_method(Vector4, dot, sarray("with"), varray());
+	bind_method(Vector4, inverse, sarray(), varray());
+	bind_method(Vector4, is_equal_approx, sarray("with"), varray());
+	bind_method(Vector4, is_zero_approx, sarray(), varray());
+	bind_method(Vector4, is_finite, sarray(), varray());
+
+	/* Vector4i */
+
+	bind_method(Vector4i, min_axis_index, sarray(), varray());
+	bind_method(Vector4i, max_axis_index, sarray(), varray());
+	bind_method(Vector4i, length, sarray(), varray());
+	bind_method(Vector4i, length_squared, sarray(), varray());
+	bind_method(Vector4i, sign, sarray(), varray());
+	bind_method(Vector4i, abs, sarray(), varray());
+	bind_method(Vector4i, clamp, sarray("min", "max"), varray());
+
 	/* Plane */
 
 	bind_method(Plane, normalized, sarray(), varray());
 	bind_method(Plane, center, sarray(), varray());
 	bind_method(Plane, is_equal_approx, sarray("to_plane"), varray());
-	bind_method(Plane, is_point_over, sarray("plane"), varray());
+	bind_method(Plane, is_finite, sarray(), varray());
+	bind_method(Plane, is_point_over, sarray("point"), varray());
 	bind_method(Plane, distance_to, sarray("point"), varray());
-	bind_method(Plane, has_point, sarray("point", "epsilon"), varray(CMP_EPSILON));
+	bind_method(Plane, has_point, sarray("point", "tolerance"), varray(CMP_EPSILON));
 	bind_method(Plane, project, sarray("point"), varray());
 	bind_methodv(Plane, intersect_3, &Plane::intersect_3_bind, sarray("b", "c"), varray());
 	bind_methodv(Plane, intersects_ray, &Plane::intersects_ray_bind, sarray("from", "dir"), varray());
@@ -1691,6 +1795,7 @@ static void _register_variant_builtin_methods() {
 	bind_method(Quaternion, normalized, sarray(), varray());
 	bind_method(Quaternion, is_normalized, sarray(), varray());
 	bind_method(Quaternion, is_equal_approx, sarray("to"), varray());
+	bind_method(Quaternion, is_finite, sarray(), varray());
 	bind_method(Quaternion, inverse, sarray(), varray());
 	bind_method(Quaternion, log, sarray(), varray());
 	bind_method(Quaternion, exp, sarray(), varray());
@@ -1698,8 +1803,10 @@ static void _register_variant_builtin_methods() {
 	bind_method(Quaternion, dot, sarray("with"), varray());
 	bind_method(Quaternion, slerp, sarray("to", "weight"), varray());
 	bind_method(Quaternion, slerpni, sarray("to", "weight"), varray());
-	bind_method(Quaternion, cubic_slerp, sarray("b", "pre_a", "post_b", "weight"), varray());
-	bind_method(Quaternion, get_euler, sarray(), varray());
+	bind_method(Quaternion, spherical_cubic_interpolate, sarray("b", "pre_a", "post_b", "weight"), varray());
+	bind_method(Quaternion, spherical_cubic_interpolate_in_time, sarray("b", "pre_a", "post_b", "weight", "b_t", "pre_a_t", "post_b_t"), varray());
+	bind_method(Quaternion, get_euler, sarray("order"), varray((int64_t)EulerOrder::YXZ));
+	bind_static_method(Quaternion, from_euler, sarray("euler"), varray());
 	bind_method(Quaternion, get_axis, sarray(), varray());
 	bind_method(Quaternion, get_angle, sarray(), varray());
 
@@ -1729,10 +1836,6 @@ static void _register_variant_builtin_methods() {
 	bind_static_method(Color, hex64, sarray("hex"), varray());
 	bind_static_method(Color, html, sarray("rgba"), varray());
 	bind_static_method(Color, html_is_valid, sarray("color"), varray());
-	bind_static_method(Color, find_named_color, sarray("name"), varray());
-	bind_static_method(Color, get_named_color_count, sarray(), varray());
-	bind_static_method(Color, get_named_color_name, sarray("idx"), varray());
-	bind_static_method(Color, get_named_color, sarray("idx"), varray());
 	bind_static_method(Color, from_string, sarray("str", "default"), varray());
 	bind_static_method(Color, from_hsv, sarray("h", "s", "v", "alpha"), varray(1.0));
 	bind_static_method(Color, from_ok_hsl, sarray("h", "s", "l", "alpha"), varray(1.0));
@@ -1752,12 +1855,14 @@ static void _register_variant_builtin_methods() {
 	bind_method(NodePath, get_subname_count, sarray(), varray());
 	bind_method(NodePath, hash, sarray(), varray());
 	bind_method(NodePath, get_subname, sarray("idx"), varray());
+	bind_method(NodePath, get_concatenated_names, sarray(), varray());
 	bind_method(NodePath, get_concatenated_subnames, sarray(), varray());
 	bind_method(NodePath, get_as_property_path, sarray(), varray());
 	bind_method(NodePath, is_empty, sarray(), varray());
 
 	/* Callable */
 
+	bind_method(Callable, callv, sarray("arguments"), varray());
 	bind_method(Callable, is_null, sarray(), varray());
 	bind_method(Callable, is_custom, sarray(), varray());
 	bind_method(Callable, is_standard, sarray(), varray());
@@ -1798,12 +1903,16 @@ static void _register_variant_builtin_methods() {
 	bind_method(Transform2D, get_skew, sarray(), varray());
 	bind_method(Transform2D, orthonormalized, sarray(), varray());
 	bind_method(Transform2D, rotated, sarray("angle"), varray());
+	bind_method(Transform2D, rotated_local, sarray("angle"), varray());
 	bind_method(Transform2D, scaled, sarray("scale"), varray());
+	bind_method(Transform2D, scaled_local, sarray("scale"), varray());
 	bind_method(Transform2D, translated, sarray("offset"), varray());
+	bind_method(Transform2D, translated_local, sarray("offset"), varray());
 	bind_method(Transform2D, basis_xform, sarray("v"), varray());
 	bind_method(Transform2D, basis_xform_inv, sarray("v"), varray());
 	bind_method(Transform2D, interpolate_with, sarray("xform", "weight"), varray());
 	bind_method(Transform2D, is_equal_approx, sarray("xform"), varray());
+	bind_method(Transform2D, is_finite, sarray(), varray());
 	bind_method(Transform2D, set_rotation, sarray("rotation"), varray());
 	bind_method(Transform2D, set_scale, sarray("scale"), varray());
 	bind_method(Transform2D, set_skew, sarray("skew"), varray());
@@ -1818,27 +1927,28 @@ static void _register_variant_builtin_methods() {
 	bind_methodv(Basis, rotated, static_cast<Basis (Basis::*)(const Vector3 &, real_t) const>(&Basis::rotated), sarray("axis", "angle"), varray());
 	bind_method(Basis, scaled, sarray("scale"), varray());
 	bind_method(Basis, get_scale, sarray(), varray());
-	bind_method(Basis, get_euler, sarray("order"), varray(Basis::EULER_ORDER_YXZ));
+	bind_method(Basis, get_euler, sarray("order"), varray((int64_t)EulerOrder::YXZ));
 	bind_method(Basis, tdotx, sarray("with"), varray());
 	bind_method(Basis, tdoty, sarray("with"), varray());
 	bind_method(Basis, tdotz, sarray("with"), varray());
-	bind_method(Basis, get_orthogonal_index, sarray(), varray());
 	bind_method(Basis, slerp, sarray("to", "weight"), varray());
 	bind_method(Basis, is_equal_approx, sarray("b"), varray());
+	bind_method(Basis, is_finite, sarray(), varray());
 	bind_method(Basis, get_rotation_quaternion, sarray(), varray());
 	bind_static_method(Basis, looking_at, sarray("target", "up"), varray(Vector3(0, 1, 0)));
 	bind_static_method(Basis, from_scale, sarray("scale"), varray());
-	bind_static_method(Basis, from_euler, sarray("euler", "order"), varray(Basis::EULER_ORDER_YXZ));
+	bind_static_method(Basis, from_euler, sarray("euler", "order"), varray((int64_t)EulerOrder::YXZ));
 
 	/* AABB */
 
 	bind_method(AABB, abs, sarray(), varray());
 	bind_method(AABB, get_center, sarray(), varray());
 	bind_method(AABB, get_volume, sarray(), varray());
-	bind_method(AABB, has_no_volume, sarray(), varray());
-	bind_method(AABB, has_no_surface, sarray(), varray());
+	bind_method(AABB, has_volume, sarray(), varray());
+	bind_method(AABB, has_surface, sarray(), varray());
 	bind_method(AABB, has_point, sarray("point"), varray());
 	bind_method(AABB, is_equal_approx, sarray("aabb"), varray());
+	bind_method(AABB, is_finite, sarray(), varray());
 	bind_method(AABB, intersects, sarray("with"), varray());
 	bind_method(AABB, encloses, sarray("with"), varray());
 	bind_method(AABB, intersects_plane, sarray("plane"), varray());
@@ -1863,12 +1973,49 @@ static void _register_variant_builtin_methods() {
 	bind_method(Transform3D, affine_inverse, sarray(), varray());
 	bind_method(Transform3D, orthonormalized, sarray(), varray());
 	bind_method(Transform3D, rotated, sarray("axis", "angle"), varray());
+	bind_method(Transform3D, rotated_local, sarray("axis", "angle"), varray());
 	bind_method(Transform3D, scaled, sarray("scale"), varray());
+	bind_method(Transform3D, scaled_local, sarray("scale"), varray());
 	bind_method(Transform3D, translated, sarray("offset"), varray());
+	bind_method(Transform3D, translated_local, sarray("offset"), varray());
 	bind_method(Transform3D, looking_at, sarray("target", "up"), varray(Vector3(0, 1, 0)));
-	bind_method(Transform3D, sphere_interpolate_with, sarray("xform", "weight"), varray());
 	bind_method(Transform3D, interpolate_with, sarray("xform", "weight"), varray());
 	bind_method(Transform3D, is_equal_approx, sarray("xform"), varray());
+	bind_method(Transform3D, is_finite, sarray(), varray());
+
+	/* Projection */
+
+	bind_static_method(Projection, create_depth_correction, sarray("flip_y"), varray());
+	bind_static_method(Projection, create_light_atlas_rect, sarray("rect"), varray());
+	bind_static_method(Projection, create_perspective, sarray("fovy", "aspect", "z_near", "z_far", "flip_fov"), varray(false));
+	bind_static_method(Projection, create_perspective_hmd, sarray("fovy", "aspect", "z_near", "z_far", "flip_fov", "eye", "intraocular_dist", " convergence_dist"), varray());
+	bind_static_method(Projection, create_for_hmd, sarray("eye", "aspect", "intraocular_dist", "display_width", "display_to_lens", "oversample", "z_near", "z_far"), varray());
+	bind_static_method(Projection, create_orthogonal, sarray("left", "right", "bottom", "top", "z_near", "z_far"), varray());
+	bind_static_method(Projection, create_orthogonal_aspect, sarray("size", "aspect", "z_near", "z_far", "flip_fov"), varray(false));
+	bind_static_method(Projection, create_frustum, sarray("left", "right", "bottom", "top", "z_near", "z_far"), varray());
+	bind_static_method(Projection, create_frustum_aspect, sarray("size", "aspect", "offset", "z_near", "z_far", "flip_fov"), varray(false));
+	bind_static_method(Projection, create_fit_aabb, sarray("aabb"), varray());
+
+	bind_method(Projection, determinant, sarray(), varray());
+	bind_method(Projection, perspective_znear_adjusted, sarray("new_znear"), varray());
+	bind_method(Projection, get_projection_plane, sarray("plane"), varray());
+	bind_method(Projection, flipped_y, sarray(), varray());
+	bind_method(Projection, jitter_offseted, sarray("offset"), varray());
+
+	bind_static_method(Projection, get_fovy, sarray("fovx", "aspect"), varray());
+
+	bind_method(Projection, get_z_far, sarray(), varray());
+	bind_method(Projection, get_z_near, sarray(), varray());
+	bind_method(Projection, get_aspect, sarray(), varray());
+	bind_method(Projection, get_fov, sarray(), varray());
+	bind_method(Projection, is_orthogonal, sarray(), varray());
+
+	bind_method(Projection, get_viewport_half_extents, sarray(), varray());
+	bind_method(Projection, get_far_plane_half_extents, sarray(), varray());
+
+	bind_method(Projection, inverse, sarray(), varray());
+	bind_method(Projection, get_pixels_per_meter, sarray("for_pixel_width"), varray());
+	bind_method(Projection, get_lod_multiplier, sarray(), varray());
 
 	/* Dictionary */
 
@@ -1878,6 +2025,7 @@ static void _register_variant_builtin_methods() {
 	bind_method(Dictionary, merge, sarray("dictionary", "overwrite"), varray(false));
 	bind_method(Dictionary, has, sarray("key"), varray());
 	bind_method(Dictionary, has_all, sarray("keys"), varray());
+	bind_method(Dictionary, find_key, sarray("value"), varray());
 	bind_method(Dictionary, erase, sarray("key"), varray());
 	bind_method(Dictionary, hash, sarray(), varray());
 	bind_method(Dictionary, keys, sarray(), varray());
@@ -1902,6 +2050,7 @@ static void _register_variant_builtin_methods() {
 	bind_method(Array, erase, sarray("value"), varray());
 	bind_method(Array, front, sarray(), varray());
 	bind_method(Array, back, sarray(), varray());
+	bind_method(Array, pick_random, sarray(), varray());
 	bind_method(Array, find, sarray("what", "from"), varray(0));
 	bind_method(Array, rfind, sarray("what", "from"), varray(-1));
 	bind_method(Array, find_last, sarray("value"), varray());
@@ -1925,6 +2074,14 @@ static void _register_variant_builtin_methods() {
 	bind_method(Array, all, sarray("method"), varray());
 	bind_method(Array, max, sarray(), varray());
 	bind_method(Array, min, sarray(), varray());
+	bind_method(Array, typed_assign, sarray("array"), varray());
+	bind_method(Array, set_typed, sarray("type", "class_name", "script"), varray());
+	bind_method(Array, is_typed, sarray(), varray());
+	bind_method(Array, get_typed_builtin, sarray(), varray());
+	bind_method(Array, get_typed_class_name, sarray(), varray());
+	bind_method(Array, get_typed_script, sarray(), varray());
+	bind_method(Array, set_read_only, sarray("enable"), varray());
+	bind_method(Array, is_read_only, sarray(), varray());
 
 	/* Byte Array */
 	bind_method(PackedByteArray, size, sarray(), varray());
@@ -1936,7 +2093,8 @@ static void _register_variant_builtin_methods() {
 	bind_method(PackedByteArray, remove_at, sarray("index"), varray());
 	bind_method(PackedByteArray, insert, sarray("at_index", "value"), varray());
 	bind_method(PackedByteArray, fill, sarray("value"), varray());
-	bind_method(PackedByteArray, resize, sarray("new_size"), varray());
+	bind_methodv(PackedByteArray, resize, &PackedByteArray::resize_zeroed, sarray("new_size"), varray());
+	bind_method(PackedByteArray, clear, sarray(), varray());
 	bind_method(PackedByteArray, has, sarray("value"), varray());
 	bind_method(PackedByteArray, reverse, sarray(), varray());
 	bind_method(PackedByteArray, slice, sarray("begin", "end"), varray(INT_MAX));
@@ -2000,7 +2158,8 @@ static void _register_variant_builtin_methods() {
 	bind_method(PackedInt32Array, remove_at, sarray("index"), varray());
 	bind_method(PackedInt32Array, insert, sarray("at_index", "value"), varray());
 	bind_method(PackedInt32Array, fill, sarray("value"), varray());
-	bind_method(PackedInt32Array, resize, sarray("new_size"), varray());
+	bind_methodv(PackedInt32Array, resize, &PackedInt32Array::resize_zeroed, sarray("new_size"), varray());
+	bind_method(PackedInt32Array, clear, sarray(), varray());
 	bind_method(PackedInt32Array, has, sarray("value"), varray());
 	bind_method(PackedInt32Array, reverse, sarray(), varray());
 	bind_method(PackedInt32Array, slice, sarray("begin", "end"), varray(INT_MAX));
@@ -2023,7 +2182,8 @@ static void _register_variant_builtin_methods() {
 	bind_method(PackedInt64Array, remove_at, sarray("index"), varray());
 	bind_method(PackedInt64Array, insert, sarray("at_index", "value"), varray());
 	bind_method(PackedInt64Array, fill, sarray("value"), varray());
-	bind_method(PackedInt64Array, resize, sarray("new_size"), varray());
+	bind_methodv(PackedInt64Array, resize, &PackedInt64Array::resize_zeroed, sarray("new_size"), varray());
+	bind_method(PackedInt64Array, clear, sarray(), varray());
 	bind_method(PackedInt64Array, has, sarray("value"), varray());
 	bind_method(PackedInt64Array, reverse, sarray(), varray());
 	bind_method(PackedInt64Array, slice, sarray("begin", "end"), varray(INT_MAX));
@@ -2046,7 +2206,8 @@ static void _register_variant_builtin_methods() {
 	bind_method(PackedFloat32Array, remove_at, sarray("index"), varray());
 	bind_method(PackedFloat32Array, insert, sarray("at_index", "value"), varray());
 	bind_method(PackedFloat32Array, fill, sarray("value"), varray());
-	bind_method(PackedFloat32Array, resize, sarray("new_size"), varray());
+	bind_methodv(PackedFloat32Array, resize, &PackedFloat32Array::resize_zeroed, sarray("new_size"), varray());
+	bind_method(PackedFloat32Array, clear, sarray(), varray());
 	bind_method(PackedFloat32Array, has, sarray("value"), varray());
 	bind_method(PackedFloat32Array, reverse, sarray(), varray());
 	bind_method(PackedFloat32Array, slice, sarray("begin", "end"), varray(INT_MAX));
@@ -2069,7 +2230,8 @@ static void _register_variant_builtin_methods() {
 	bind_method(PackedFloat64Array, remove_at, sarray("index"), varray());
 	bind_method(PackedFloat64Array, insert, sarray("at_index", "value"), varray());
 	bind_method(PackedFloat64Array, fill, sarray("value"), varray());
-	bind_method(PackedFloat64Array, resize, sarray("new_size"), varray());
+	bind_methodv(PackedFloat64Array, resize, &PackedFloat64Array::resize_zeroed, sarray("new_size"), varray());
+	bind_method(PackedFloat64Array, clear, sarray(), varray());
 	bind_method(PackedFloat64Array, has, sarray("value"), varray());
 	bind_method(PackedFloat64Array, reverse, sarray(), varray());
 	bind_method(PackedFloat64Array, slice, sarray("begin", "end"), varray(INT_MAX));
@@ -2093,6 +2255,7 @@ static void _register_variant_builtin_methods() {
 	bind_method(PackedStringArray, insert, sarray("at_index", "value"), varray());
 	bind_method(PackedStringArray, fill, sarray("value"), varray());
 	bind_method(PackedStringArray, resize, sarray("new_size"), varray());
+	bind_method(PackedStringArray, clear, sarray(), varray());
 	bind_method(PackedStringArray, has, sarray("value"), varray());
 	bind_method(PackedStringArray, reverse, sarray(), varray());
 	bind_method(PackedStringArray, slice, sarray("begin", "end"), varray(INT_MAX));
@@ -2116,6 +2279,7 @@ static void _register_variant_builtin_methods() {
 	bind_method(PackedVector2Array, insert, sarray("at_index", "value"), varray());
 	bind_method(PackedVector2Array, fill, sarray("value"), varray());
 	bind_method(PackedVector2Array, resize, sarray("new_size"), varray());
+	bind_method(PackedVector2Array, clear, sarray(), varray());
 	bind_method(PackedVector2Array, has, sarray("value"), varray());
 	bind_method(PackedVector2Array, reverse, sarray(), varray());
 	bind_method(PackedVector2Array, slice, sarray("begin", "end"), varray(INT_MAX));
@@ -2139,6 +2303,7 @@ static void _register_variant_builtin_methods() {
 	bind_method(PackedVector3Array, insert, sarray("at_index", "value"), varray());
 	bind_method(PackedVector3Array, fill, sarray("value"), varray());
 	bind_method(PackedVector3Array, resize, sarray("new_size"), varray());
+	bind_method(PackedVector3Array, clear, sarray(), varray());
 	bind_method(PackedVector3Array, has, sarray("value"), varray());
 	bind_method(PackedVector3Array, reverse, sarray(), varray());
 	bind_method(PackedVector3Array, slice, sarray("begin", "end"), varray(INT_MAX));
@@ -2162,6 +2327,7 @@ static void _register_variant_builtin_methods() {
 	bind_method(PackedColorArray, insert, sarray("at_index", "value"), varray());
 	bind_method(PackedColorArray, fill, sarray("value"), varray());
 	bind_method(PackedColorArray, resize, sarray("new_size"), varray());
+	bind_method(PackedColorArray, clear, sarray(), varray());
 	bind_method(PackedColorArray, has, sarray("value"), varray());
 	bind_method(PackedColorArray, reverse, sarray(), varray());
 	bind_method(PackedColorArray, slice, sarray("begin", "end"), varray(INT_MAX));
@@ -2198,6 +2364,19 @@ static void _register_variant_builtin_methods() {
 	_VariantCall::add_variant_constant(Variant::VECTOR3, "FORWARD", Vector3(0, 0, -1));
 	_VariantCall::add_variant_constant(Variant::VECTOR3, "BACK", Vector3(0, 0, 1));
 
+	_VariantCall::add_constant(Variant::VECTOR4, "AXIS_X", Vector4::AXIS_X);
+	_VariantCall::add_constant(Variant::VECTOR4, "AXIS_Y", Vector4::AXIS_Y);
+	_VariantCall::add_constant(Variant::VECTOR4, "AXIS_Z", Vector4::AXIS_Z);
+	_VariantCall::add_constant(Variant::VECTOR4, "AXIS_W", Vector4::AXIS_W);
+
+	_VariantCall::add_enum_constant(Variant::VECTOR4, "Axis", "AXIS_X", Vector4::AXIS_X);
+	_VariantCall::add_enum_constant(Variant::VECTOR4, "Axis", "AXIS_Y", Vector4::AXIS_Y);
+	_VariantCall::add_enum_constant(Variant::VECTOR4, "Axis", "AXIS_Z", Vector4::AXIS_Z);
+	_VariantCall::add_enum_constant(Variant::VECTOR4, "Axis", "AXIS_W", Vector4::AXIS_W);
+	_VariantCall::add_variant_constant(Variant::VECTOR4, "ZERO", Vector4(0, 0, 0, 0));
+	_VariantCall::add_variant_constant(Variant::VECTOR4, "ONE", Vector4(1, 1, 1, 1));
+	_VariantCall::add_variant_constant(Variant::VECTOR4, "INF", Vector4(INFINITY, INFINITY, INFINITY, INFINITY));
+
 	_VariantCall::add_constant(Variant::VECTOR3I, "AXIS_X", Vector3i::AXIS_X);
 	_VariantCall::add_constant(Variant::VECTOR3I, "AXIS_Y", Vector3i::AXIS_Y);
 	_VariantCall::add_constant(Variant::VECTOR3I, "AXIS_Z", Vector3i::AXIS_Z);
@@ -2205,6 +2384,19 @@ static void _register_variant_builtin_methods() {
 	_VariantCall::add_enum_constant(Variant::VECTOR3I, "Axis", "AXIS_X", Vector3i::AXIS_X);
 	_VariantCall::add_enum_constant(Variant::VECTOR3I, "Axis", "AXIS_Y", Vector3i::AXIS_Y);
 	_VariantCall::add_enum_constant(Variant::VECTOR3I, "Axis", "AXIS_Z", Vector3i::AXIS_Z);
+
+	_VariantCall::add_constant(Variant::VECTOR4I, "AXIS_X", Vector4i::AXIS_X);
+	_VariantCall::add_constant(Variant::VECTOR4I, "AXIS_Y", Vector4i::AXIS_Y);
+	_VariantCall::add_constant(Variant::VECTOR4I, "AXIS_Z", Vector4i::AXIS_Z);
+	_VariantCall::add_constant(Variant::VECTOR4I, "AXIS_W", Vector4i::AXIS_W);
+
+	_VariantCall::add_enum_constant(Variant::VECTOR4I, "Axis", "AXIS_X", Vector4i::AXIS_X);
+	_VariantCall::add_enum_constant(Variant::VECTOR4I, "Axis", "AXIS_Y", Vector4i::AXIS_Y);
+	_VariantCall::add_enum_constant(Variant::VECTOR4I, "Axis", "AXIS_Z", Vector4i::AXIS_Z);
+	_VariantCall::add_enum_constant(Variant::VECTOR4I, "Axis", "AXIS_W", Vector4i::AXIS_W);
+
+	_VariantCall::add_variant_constant(Variant::VECTOR4I, "ZERO", Vector4i(0, 0, 0, 0));
+	_VariantCall::add_variant_constant(Variant::VECTOR4I, "ONE", Vector4i(1, 1, 1, 1));
 
 	_VariantCall::add_variant_constant(Variant::VECTOR3I, "ZERO", Vector3i(0, 0, 0));
 	_VariantCall::add_variant_constant(Variant::VECTOR3I, "ONE", Vector3i(1, 1, 1));
@@ -2242,20 +2434,6 @@ static void _register_variant_builtin_methods() {
 	_VariantCall::add_variant_constant(Variant::VECTOR2I, "UP", Vector2i(0, -1));
 	_VariantCall::add_variant_constant(Variant::VECTOR2I, "DOWN", Vector2i(0, 1));
 
-	_VariantCall::add_constant(Variant::BASIS, "EULER_ORDER_XYZ", Basis::EULER_ORDER_XYZ);
-	_VariantCall::add_constant(Variant::BASIS, "EULER_ORDER_XZY", Basis::EULER_ORDER_XZY);
-	_VariantCall::add_constant(Variant::BASIS, "EULER_ORDER_YXZ", Basis::EULER_ORDER_YXZ);
-	_VariantCall::add_constant(Variant::BASIS, "EULER_ORDER_YZX", Basis::EULER_ORDER_YZX);
-	_VariantCall::add_constant(Variant::BASIS, "EULER_ORDER_ZXY", Basis::EULER_ORDER_ZXY);
-	_VariantCall::add_constant(Variant::BASIS, "EULER_ORDER_ZYX", Basis::EULER_ORDER_ZYX);
-
-	_VariantCall::add_enum_constant(Variant::BASIS, "EulerOrder", "EULER_ORDER_XYZ", Basis::EULER_ORDER_XYZ);
-	_VariantCall::add_enum_constant(Variant::BASIS, "EulerOrder", "EULER_ORDER_XZY", Basis::EULER_ORDER_XZY);
-	_VariantCall::add_enum_constant(Variant::BASIS, "EulerOrder", "EULER_ORDER_YXZ", Basis::EULER_ORDER_YXZ);
-	_VariantCall::add_enum_constant(Variant::BASIS, "EulerOrder", "EULER_ORDER_YZX", Basis::EULER_ORDER_YZX);
-	_VariantCall::add_enum_constant(Variant::BASIS, "EulerOrder", "EULER_ORDER_ZXY", Basis::EULER_ORDER_ZXY);
-	_VariantCall::add_enum_constant(Variant::BASIS, "EulerOrder", "EULER_ORDER_ZYX", Basis::EULER_ORDER_ZYX);
-
 	_VariantCall::add_variant_constant(Variant::TRANSFORM2D, "IDENTITY", Transform2D());
 	_VariantCall::add_variant_constant(Variant::TRANSFORM2D, "FLIP_X", Transform2D(-1, 0, 0, 1, 0, 0));
 	_VariantCall::add_variant_constant(Variant::TRANSFORM2D, "FLIP_Y", Transform2D(1, 0, 0, -1, 0, 0));
@@ -2283,6 +2461,25 @@ static void _register_variant_builtin_methods() {
 	_VariantCall::add_variant_constant(Variant::PLANE, "PLANE_XY", Plane(Vector3(0, 0, 1), 0));
 
 	_VariantCall::add_variant_constant(Variant::QUATERNION, "IDENTITY", Quaternion(0, 0, 0, 1));
+
+	_VariantCall::add_constant(Variant::PROJECTION, "PLANE_NEAR", Projection::PLANE_NEAR);
+	_VariantCall::add_constant(Variant::PROJECTION, "PLANE_FAR", Projection::PLANE_FAR);
+	_VariantCall::add_constant(Variant::PROJECTION, "PLANE_LEFT", Projection::PLANE_LEFT);
+	_VariantCall::add_constant(Variant::PROJECTION, "PLANE_TOP", Projection::PLANE_TOP);
+	_VariantCall::add_constant(Variant::PROJECTION, "PLANE_RIGHT", Projection::PLANE_RIGHT);
+	_VariantCall::add_constant(Variant::PROJECTION, "PLANE_BOTTOM", Projection::PLANE_BOTTOM);
+
+	_VariantCall::add_enum_constant(Variant::PROJECTION, "Planes", "PLANE_NEAR", Projection::PLANE_NEAR);
+	_VariantCall::add_enum_constant(Variant::PROJECTION, "Planes", "PLANE_FAR", Projection::PLANE_FAR);
+	_VariantCall::add_enum_constant(Variant::PROJECTION, "Planes", "PLANE_LEFT", Projection::PLANE_LEFT);
+	_VariantCall::add_enum_constant(Variant::PROJECTION, "Planes", "PLANE_TOP", Projection::PLANE_TOP);
+	_VariantCall::add_enum_constant(Variant::PROJECTION, "Planes", "PLANE_RIGHT", Projection::PLANE_RIGHT);
+	_VariantCall::add_enum_constant(Variant::PROJECTION, "Planes", "PLANE_BOTTOM", Projection::PLANE_BOTTOM);
+
+	Projection p;
+	_VariantCall::add_variant_constant(Variant::PROJECTION, "IDENTITY", p);
+	p.set_zero();
+	_VariantCall::add_variant_constant(Variant::PROJECTION, "ZERO", p);
 }
 
 void Variant::_register_variant_methods() {

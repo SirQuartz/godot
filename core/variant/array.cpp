@@ -31,6 +31,7 @@
 #include "array.h"
 
 #include "container_type_validate.h"
+#include "core/math/math_funcs.h"
 #include "core/object/class_db.h"
 #include "core/object/script_language.h"
 #include "core/templates/hashfuncs.h"
@@ -299,6 +300,11 @@ Variant Array::back() const {
 	return operator[](_p->array.size() - 1);
 }
 
+Variant Array::pick_random() const {
+	ERR_FAIL_COND_V_MSG(_p->array.size() == 0, Variant(), "Can't take value from empty array.");
+	return operator[](Math::rand() % _p->array.size());
+}
+
 int Array::find(const Variant &p_value, int p_from) const {
 	ERR_FAIL_COND_V(!_p->typed.validate(p_value, "find"), -1);
 	return _p->array.find(p_value, p_from);
@@ -402,6 +408,7 @@ Array Array::recursive_duplicate(bool p_deep, int recursion_count) const {
 
 Array Array::slice(int p_begin, int p_end, int p_step, bool p_deep) const {
 	Array result;
+	result._p->typed = _p->typed;
 
 	ERR_FAIL_COND_V_MSG(p_step == 0, result, "Slice step cannot be zero.");
 
@@ -433,6 +440,7 @@ Array Array::slice(int p_begin, int p_end, int p_step, bool p_deep) const {
 Array Array::filter(const Callable &p_callable) const {
 	Array new_arr;
 	new_arr.resize(size());
+	new_arr._p->typed = _p->typed;
 	int accepted_count = 0;
 
 	const Variant *argptrs[1];
@@ -441,7 +449,7 @@ Array Array::filter(const Callable &p_callable) const {
 
 		Variant result;
 		Callable::CallError ce;
-		p_callable.call(argptrs, 1, result, ce);
+		p_callable.callp(argptrs, 1, result, ce);
 		if (ce.error != Callable::CallError::CALL_OK) {
 			ERR_FAIL_V_MSG(Array(), "Error calling method from 'filter': " + Variant::get_callable_error_text(p_callable, argptrs, 1, ce));
 		}
@@ -467,7 +475,7 @@ Array Array::map(const Callable &p_callable) const {
 
 		Variant result;
 		Callable::CallError ce;
-		p_callable.call(argptrs, 1, result, ce);
+		p_callable.callp(argptrs, 1, result, ce);
 		if (ce.error != Callable::CallError::CALL_OK) {
 			ERR_FAIL_V_MSG(Array(), "Error calling method from 'map': " + Variant::get_callable_error_text(p_callable, argptrs, 1, ce));
 		}
@@ -493,7 +501,7 @@ Variant Array::reduce(const Callable &p_callable, const Variant &p_accum) const 
 
 		Variant result;
 		Callable::CallError ce;
-		p_callable.call(argptrs, 2, result, ce);
+		p_callable.callp(argptrs, 2, result, ce);
 		if (ce.error != Callable::CallError::CALL_OK) {
 			ERR_FAIL_V_MSG(Variant(), "Error calling method from 'reduce': " + Variant::get_callable_error_text(p_callable, argptrs, 2, ce));
 		}
@@ -510,7 +518,7 @@ bool Array::any(const Callable &p_callable) const {
 
 		Variant result;
 		Callable::CallError ce;
-		p_callable.call(argptrs, 1, result, ce);
+		p_callable.callp(argptrs, 1, result, ce);
 		if (ce.error != Callable::CallError::CALL_OK) {
 			ERR_FAIL_V_MSG(false, "Error calling method from 'any': " + Variant::get_callable_error_text(p_callable, argptrs, 1, ce));
 		}
@@ -532,7 +540,7 @@ bool Array::all(const Callable &p_callable) const {
 
 		Variant result;
 		Callable::CallError ce;
-		p_callable.call(argptrs, 1, result, ce);
+		p_callable.callp(argptrs, 1, result, ce);
 		if (ce.error != Callable::CallError::CALL_OK) {
 			ERR_FAIL_V_MSG(false, "Error calling method from 'all': " + Variant::get_callable_error_text(p_callable, argptrs, 1, ce));
 		}

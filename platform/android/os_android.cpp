@@ -40,9 +40,11 @@
 
 #include "dir_access_jandroid.h"
 #include "file_access_android.h"
+#include "file_access_filesystem_jandroid.h"
 #include "net_socket_android.h"
 
 #include <dlfcn.h>
+#include <sys/system_properties.h>
 
 #include "java_godot_io_wrapper.h"
 #include "java_godot_wrapper.h"
@@ -93,7 +95,7 @@ void OS_Android::initialize_core() {
 	}
 #endif
 	FileAccess::make_default<FileAccessUnix>(FileAccess::ACCESS_USERDATA);
-	FileAccess::make_default<FileAccessUnix>(FileAccess::ACCESS_FILESYSTEM);
+	FileAccess::make_default<FileAccessFilesystemJAndroid>(FileAccess::ACCESS_FILESYSTEM);
 
 #ifdef TOOLS_ENABLED
 	DirAccess::make_default<DirAccessUnix>(DirAccess::ACCESS_RESOURCES);
@@ -105,7 +107,7 @@ void OS_Android::initialize_core() {
 	}
 #endif
 	DirAccess::make_default<DirAccessUnix>(DirAccess::ACCESS_USERDATA);
-	DirAccess::make_default<DirAccessUnix>(DirAccess::ACCESS_FILESYSTEM);
+	DirAccess::make_default<DirAccessJAndroid>(DirAccess::ACCESS_FILESYSTEM);
 
 	NetSocketAndroid::make_default();
 }
@@ -160,11 +162,16 @@ Vector<String> OS_Android::get_granted_permissions() const {
 }
 
 Error OS_Android::open_dynamic_library(const String p_path, void *&p_library_handle, bool p_also_set_library_path, String *r_resolved_path) {
-	p_library_handle = dlopen(p_path.utf8().get_data(), RTLD_NOW);
+	String path = p_path;
+	if (!FileAccess::exists(path)) {
+		path = p_path.get_file();
+	}
+
+	p_library_handle = dlopen(path.utf8().get_data(), RTLD_NOW);
 	ERR_FAIL_NULL_V_MSG(p_library_handle, ERR_CANT_OPEN, "Can't open dynamic library: " + p_path + ", error: " + dlerror() + ".");
 
 	if (r_resolved_path != nullptr) {
-		*r_resolved_path = p_path;
+		*r_resolved_path = path;
 	}
 
 	return OK;
@@ -172,6 +179,79 @@ Error OS_Android::open_dynamic_library(const String p_path, void *&p_library_han
 
 String OS_Android::get_name() const {
 	return "Android";
+}
+
+String OS_Android::get_system_property(const char *key) const {
+	static String value;
+	char value_str[PROP_VALUE_MAX];
+	if (__system_property_get(key, value_str)) {
+		value = String(value_str);
+	}
+	return value;
+}
+
+String OS_Android::get_distribution_name() const {
+	if (!get_system_property("ro.havoc.version").is_empty()) {
+		return "Havoc OS";
+	} else if (!get_system_property("org.pex.version").is_empty()) { // Putting before "Pixel Experience", because it's derivating from it.
+		return "Pixel Extended";
+	} else if (!get_system_property("org.pixelexperience.version").is_empty()) {
+		return "Pixel Experience";
+	} else if (!get_system_property("ro.potato.version").is_empty()) {
+		return "POSP";
+	} else if (!get_system_property("ro.xtended.version").is_empty()) {
+		return "Project-Xtended";
+	} else if (!get_system_property("org.evolution.version").is_empty()) {
+		return "Evolution X";
+	} else if (!get_system_property("ro.corvus.version").is_empty()) {
+		return "Corvus-Q";
+	} else if (!get_system_property("ro.pa.version").is_empty()) {
+		return "Paranoid Android";
+	} else if (!get_system_property("ro.crdroid.version").is_empty()) {
+		return "crDroid Android";
+	} else if (!get_system_property("ro.syberia.version").is_empty()) {
+		return "Syberia Project";
+	} else if (!get_system_property("ro.arrow.version").is_empty()) {
+		return "ArrowOS";
+	} else if (!get_system_property("ro.lineage.version").is_empty()) { // Putting LineageOS last, just in case any derivative writes to "ro.lineage.version".
+		return "LineageOS";
+	}
+
+	if (!get_system_property("ro.modversion").is_empty()) { // Handles other Android custom ROMs.
+		return vformat("%s %s", get_name(), "Custom ROM");
+	}
+
+	// Handles stock Android.
+	return get_name();
+}
+
+String OS_Android::get_version() const {
+	const Vector<const char *> roms = { "ro.havoc.version", "org.pex.version", "org.pixelexperience.version",
+		"ro.potato.version", "ro.xtended.version", "org.evolution.version", "ro.corvus.version", "ro.pa.version",
+		"ro.crdroid.version", "ro.syberia.version", "ro.arrow.version", "ro.lineage.version" };
+	for (int i = 0; i < roms.size(); i++) {
+		static String rom_version = get_system_property(roms[i]);
+		if (!rom_version.is_empty()) {
+			return rom_version;
+		}
+	}
+
+	static String mod_version = get_system_property("ro.modversion"); // Handles other Android custom ROMs.
+	if (!mod_version.is_empty()) {
+		return mod_version;
+	}
+
+	// Handles stock Android.
+	static String sdk_version = get_system_property("ro.build.version.sdk_int");
+	static String build = get_system_property("ro.build.version.incremental");
+	if (!sdk_version.is_empty()) {
+		if (!build.is_empty()) {
+			return vformat("%s.%s", sdk_version, build);
+		}
+		return sdk_version;
+	}
+
+	return "";
 }
 
 MainLoop *OS_Android::get_main_loop() const {
@@ -300,6 +380,33 @@ String OS_Android::get_system_dir(SystemDir p_dir, bool p_shared_storage) const 
 	return godot_io_java->get_system_dir(p_dir, p_shared_storage);
 }
 
+Error OS_Android::move_to_trash(const String &p_path) {
+	Ref<DirAccess> da_ref = DirAccess::create_for_path(p_path);
+	if (da_ref.is_null()) {
+		return FAILED;
+	}
+
+	// Check if it's a directory
+	if (da_ref->dir_exists(p_path)) {
+		Error err = da_ref->change_dir(p_path);
+		if (err) {
+			return err;
+		}
+		// This is directory, let's erase its contents
+		err = da_ref->erase_contents_recursive();
+		if (err) {
+			return err;
+		}
+		// Remove the top directory
+		return da_ref->remove(p_path);
+	} else if (da_ref->file_exists(p_path)) {
+		// This is a file, let's remove it.
+		return da_ref->remove(p_path);
+	} else {
+		return FAILED;
+	}
+}
+
 void OS_Android::set_display_size(const Size2i &p_size) {
 	display_size = p_size;
 }
@@ -334,7 +441,7 @@ void OS_Android::vibrate_handheld(int p_duration_ms) {
 }
 
 String OS_Android::get_config_path() const {
-	return get_user_data_dir().plus_file("config");
+	return get_user_data_dir().path_join("config");
 }
 
 bool OS_Android::_check_internal_feature_support(const String &p_feature) {
@@ -342,15 +449,15 @@ bool OS_Android::_check_internal_feature_support(const String &p_feature) {
 		return true;
 	}
 #if defined(__aarch64__)
-	if (p_feature == "arm64-v8a") {
+	if (p_feature == "arm64-v8a" || p_feature == "arm64") {
 		return true;
 	}
 #elif defined(__ARM_ARCH_7A__)
-	if (p_feature == "armeabi-v7a" || p_feature == "armeabi") {
+	if (p_feature == "armeabi-v7a" || p_feature == "armeabi" || p_feature == "arm32") {
 		return true;
 	}
 #elif defined(__arm__)
-	if (p_feature == "armeabi") {
+	if (p_feature == "armeabi" || p_feature == "arm") {
 		return true;
 	}
 #endif

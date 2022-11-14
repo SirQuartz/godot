@@ -28,8 +28,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef EDITORPREVIEWPLUGINS_H
-#define EDITORPREVIEWPLUGINS_H
+#ifndef EDITOR_PREVIEW_PLUGINS_H
+#define EDITOR_PREVIEW_PLUGINS_H
 
 #include "core/templates/safe_refcount.h"
 #include "editor/editor_resource_preview.h"
@@ -91,6 +91,7 @@ class EditorMaterialPreviewPlugin : public EditorResourcePreviewGenerator {
 	RID light2;
 	RID light_instance2;
 	RID camera;
+	RID camera_attributes;
 	Semaphore preview_done;
 
 	void _generate_frame_started();
@@ -133,6 +134,7 @@ class EditorMeshPreviewPlugin : public EditorResourcePreviewGenerator {
 	RID light2;
 	RID light_instance2;
 	RID camera;
+	RID camera_attributes;
 	Semaphore preview_done;
 
 	void _generate_frame_started();
@@ -193,4 +195,5 @@ public:
 
 	EditorGradientPreviewPlugin();
 };
-#endif // EDITORPREVIEWPLUGINS_H
+
+#endif // EDITOR_PREVIEW_PLUGINS_H

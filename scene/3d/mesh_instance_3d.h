@@ -28,8 +28,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef MESH_INSTANCE_H
-#define MESH_INSTANCE_H
+#ifndef MESH_INSTANCE_3D_H
+#define MESH_INSTANCE_3D_H
 
 #include "core/templates/local_vector.h"
 #include "scene/3d/visual_instance_3d.h"
@@ -90,6 +90,7 @@ public:
 	Node *create_multiple_convex_collisions_node();
 	void create_multiple_convex_collisions();
 
+	MeshInstance3D *create_debug_tangents_node();
 	void create_debug_tangents();
 
 	virtual AABB get_aabb() const override;
@@ -98,4 +99,4 @@ public:
 	~MeshInstance3D();
 };
 
-#endif
+#endif // MESH_INSTANCE_3D_H

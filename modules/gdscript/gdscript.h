@@ -87,7 +87,7 @@ class GDScript : public Script {
 	HashMap<StringName, MemberInfo> member_indices; //members are just indices to the instantiated script.
 	HashMap<StringName, Ref<GDScript>> subclasses;
 	HashMap<StringName, Vector<StringName>> _signals;
-	Vector<Multiplayer::RPCConfig> rpc_functions;
+	Dictionary rpc_config;
 
 #ifdef TOOLS_ENABLED
 
@@ -120,6 +120,7 @@ class GDScript : public Script {
 
 	GDScriptFunction *implicit_initializer = nullptr;
 	GDScriptFunction *initializer = nullptr; //direct pointer to new , faster to locate
+	GDScriptFunction *implicit_ready = nullptr;
 
 	int subclass_count = 0;
 	RBSet<Object *> instances;
@@ -221,6 +222,7 @@ public:
 
 	virtual Error reload(bool p_keep_state = false) override;
 
+	virtual void set_path(const String &p_path, bool p_take_over = false) override;
 	void set_script_path(const String &p_path) { path = p_path; } //because subclasses need a path too...
 	Error load_source_code(const String &p_path);
 	Error load_byte_code(const String &p_path);
@@ -249,7 +251,7 @@ public:
 	virtual void get_constants(HashMap<StringName, Variant> *p_constants) override;
 	virtual void get_members(HashSet<StringName> *p_members) override;
 
-	virtual const Vector<Multiplayer::RPCConfig> get_rpc_methods() const override;
+	virtual const Variant get_rpc_config() const override;
 
 #ifdef TOOLS_ENABLED
 	virtual bool is_placeholder_fallback_enabled() const override { return placeholder_fallback_enabled; }
@@ -286,6 +288,9 @@ public:
 	virtual void get_property_list(List<PropertyInfo> *p_properties) const;
 	virtual Variant::Type get_property_type(const StringName &p_name, bool *r_is_valid = nullptr) const;
 
+	virtual bool property_can_revert(const StringName &p_name) const;
+	virtual bool property_get_revert(const StringName &p_name, Variant &r_ret) const;
+
 	virtual void get_method_list(List<MethodInfo> *p_list) const;
 	virtual bool has_method(const StringName &p_method) const;
 	virtual Variant callp(const StringName &p_method, const Variant **p_args, int p_argcount, Callable::CallError &r_error);
@@ -303,7 +308,7 @@ public:
 
 	void reload_members();
 
-	virtual const Vector<Multiplayer::RPCConfig> get_rpc_methods() const;
+	virtual const Variant get_rpc_config() const;
 
 	GDScriptInstance();
 	~GDScriptInstance();
@@ -338,7 +343,7 @@ class GDScriptLanguage : public ScriptLanguage {
 
 	friend class GDScriptInstance;
 
-	Mutex lock;
+	Mutex mutex;
 
 	friend class GDScript;
 
@@ -422,6 +427,8 @@ public:
 		StringName _set;
 		StringName _get;
 		StringName _get_property_list;
+		StringName _property_can_revert;
+		StringName _property_get_revert;
 		StringName _script_source;
 
 	} strings;
@@ -488,6 +495,7 @@ public:
 
 	virtual void get_public_functions(List<MethodInfo> *p_functions) const override;
 	virtual void get_public_constants(List<Pair<String, Variant>> *p_constants) const override;
+	virtual void get_public_annotations(List<MethodInfo> *p_annotations) const override;
 
 	virtual void profiling_start() override;
 	virtual void profiling_stop() override;
@@ -522,7 +530,7 @@ public:
 
 class ResourceFormatSaverGDScript : public ResourceFormatSaver {
 public:
-	virtual Error save(const String &p_path, const Ref<Resource> &p_resource, uint32_t p_flags = 0);
+	virtual Error save(const Ref<Resource> &p_resource, const String &p_path, uint32_t p_flags = 0);
 	virtual void get_recognized_extensions(const Ref<Resource> &p_resource, List<String> *p_extensions) const;
 	virtual bool recognize(const Ref<Resource> &p_resource) const;
 };

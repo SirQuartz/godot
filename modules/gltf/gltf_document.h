@@ -31,48 +31,19 @@
 #ifndef GLTF_DOCUMENT_H
 #define GLTF_DOCUMENT_H
 
-#include "gltf_animation.h"
+#include "gltf_defines.h"
+#include "structures/gltf_animation.h"
 
 #include "scene/3d/bone_attachment_3d.h"
 #include "scene/3d/importer_mesh_instance_3d.h"
-#include "scene/3d/light_3d.h"
 #include "scene/3d/mesh_instance_3d.h"
 #include "scene/animation/animation_player.h"
 #include "scene/resources/material.h"
 
 #include "modules/modules_enabled.gen.h" // For csg, gridmap.
 
-#include <cstdint>
-
-class GLTFState;
-class GLTFSkin;
-class GLTFNode;
-class GLTFSpecGloss;
-class GLTFSkeleton;
-class CSGShape3D;
-class GridMap;
-class MultiMeshInstance3D;
-class GLTFDocumentExtension;
-
-using GLTFAccessorIndex = int;
-using GLTFAnimationIndex = int;
-using GLTFBufferIndex = int;
-using GLTFBufferViewIndex = int;
-using GLTFCameraIndex = int;
-using GLTFImageIndex = int;
-using GLTFMaterialIndex = int;
-using GLTFMeshIndex = int;
-using GLTFLightIndex = int;
-using GLTFNodeIndex = int;
-using GLTFSkeletonIndex = int;
-using GLTFSkinIndex = int;
-using GLTFTextureIndex = int;
-
 class GLTFDocument : public Resource {
 	GDCLASS(GLTFDocument, Resource);
-	friend class GLTFState;
-	friend class GLTFSkin;
-	friend class GLTFSkeleton;
 	TypedArray<GLTFDocumentExtension> document_extensions;
 
 private:
@@ -81,15 +52,6 @@ private:
 public:
 	GLTFDocument();
 	const int32_t JOINT_GROUP_SIZE = 4;
-	enum GLTFType {
-		TYPE_SCALAR,
-		TYPE_VEC2,
-		TYPE_VEC3,
-		TYPE_VEC4,
-		TYPE_MAT2,
-		TYPE_MAT3,
-		TYPE_MAT4,
-	};
 
 	enum {
 		ARRAY_BUFFER = 34962,
@@ -118,58 +80,6 @@ public:
 	TypedArray<GLTFDocumentExtension> get_extensions() const;
 
 private:
-	template <class T>
-	static Array to_array(const Vector<T> &p_inp) {
-		Array ret;
-		for (int i = 0; i < p_inp.size(); i++) {
-			ret.push_back(p_inp[i]);
-		}
-		return ret;
-	}
-
-	template <class T>
-	static Array to_array(const HashSet<T> &p_inp) {
-		Array ret;
-		typename HashSet<T>::Iterator elem = p_inp.begin();
-		while (elem) {
-			ret.push_back(*elem);
-			++elem;
-		}
-		return ret;
-	}
-
-	template <class T>
-	static void set_from_array(Vector<T> &r_out, const Array &p_inp) {
-		r_out.clear();
-		for (int i = 0; i < p_inp.size(); i++) {
-			r_out.push_back(p_inp[i]);
-		}
-	}
-
-	template <class T>
-	static void set_from_array(HashSet<T> &r_out, const Array &p_inp) {
-		r_out.clear();
-		for (int i = 0; i < p_inp.size(); i++) {
-			r_out.insert(p_inp[i]);
-		}
-	}
-	template <class K, class V>
-	static Dictionary to_dict(const HashMap<K, V> &p_inp) {
-		Dictionary ret;
-		for (const KeyValue<K, V> &E : p_inp) {
-			ret[E.key] = E.value;
-		}
-		return ret;
-	}
-
-	template <class K, class V>
-	static void set_from_dict(HashMap<K, V> &r_out, const Dictionary &p_inp) {
-		r_out.clear();
-		Array keys = p_inp.keys();
-		for (int i = 0; i < keys.size(); i++) {
-			r_out[keys[i]] = p_inp[keys[i]];
-		}
-	}
 	void _build_parent_hierachy(Ref<GLTFState> state);
 	double _filter_number(double p_float);
 	String _get_component_type_name(const uint32_t p_component);
@@ -177,7 +87,7 @@ private:
 	Error _parse_scenes(Ref<GLTFState> state);
 	Error _parse_nodes(Ref<GLTFState> state);
 	String _get_type_name(const GLTFType p_component);
-	String _get_accessor_type_name(const GLTFDocument::GLTFType p_type);
+	String _get_accessor_type_name(const GLTFType p_type);
 	String _gen_unique_name(Ref<GLTFState> state, const String &p_name);
 	String _sanitize_animation_name(const String &name);
 	String _gen_unique_animation_name(Ref<GLTFState> state, const String &p_name);
@@ -185,8 +95,13 @@ private:
 	String _gen_unique_bone_name(Ref<GLTFState> state,
 			const GLTFSkeletonIndex skel_i,
 			const String &p_name);
-	GLTFTextureIndex _set_texture(Ref<GLTFState> state, Ref<Texture2D> p_texture);
+	GLTFTextureIndex _set_texture(Ref<GLTFState> state, Ref<Texture2D> p_texture,
+			StandardMaterial3D::TextureFilter p_filter_mode, bool p_repeats);
 	Ref<Texture2D> _get_texture(Ref<GLTFState> state,
+			const GLTFTextureIndex p_texture);
+	GLTFTextureSamplerIndex _set_sampler_for_mode(Ref<GLTFState> state,
+			StandardMaterial3D::TextureFilter p_filter_mode, bool p_repeats);
+	Ref<GLTFTextureSampler> _get_sampler_for_texture(Ref<GLTFState> state,
 			const GLTFTextureIndex p_texture);
 	Error _parse_json(const String &p_path, Ref<GLTFState> state);
 	Error _parse_glb(Ref<FileAccess> f, Ref<GLTFState> state);
@@ -235,10 +150,12 @@ private:
 			const bool p_for_vertex);
 	Error _parse_meshes(Ref<GLTFState> state);
 	Error _serialize_textures(Ref<GLTFState> state);
+	Error _serialize_texture_samplers(Ref<GLTFState> state);
 	Error _serialize_images(Ref<GLTFState> state, const String &p_path);
 	Error _serialize_lights(Ref<GLTFState> state);
 	Error _parse_images(Ref<GLTFState> state, const String &p_base_path);
 	Error _parse_textures(Ref<GLTFState> state);
+	Error _parse_texture_samplers(Ref<GLTFState> state);
 	Error _parse_materials(Ref<GLTFState> state);
 	void _set_texture_transform_uv1(const Dictionary &d, Ref<BaseMaterial3D> material);
 	void spec_gloss_to_rough_metal(Ref<GLTFSpecGloss> r_spec_gloss,
@@ -278,7 +195,7 @@ private:
 			const GLTFNodeIndex bone_index);
 	ImporterMeshInstance3D *_generate_mesh_instance(Ref<GLTFState> state, const GLTFNodeIndex node_index);
 	Camera3D *_generate_camera(Ref<GLTFState> state, const GLTFNodeIndex node_index);
-	Node3D *_generate_light(Ref<GLTFState> state, const GLTFNodeIndex node_index);
+	Light3D *_generate_light(Ref<GLTFState> state, const GLTFNodeIndex node_index);
 	Node3D *_generate_spatial(Ref<GLTFState> state, const GLTFNodeIndex node_index);
 	void _assign_scene_names(Ref<GLTFState> state);
 	template <class T>
@@ -355,7 +272,7 @@ private:
 	Dictionary _serialize_texture_transform_uv2(Ref<BaseMaterial3D> p_material);
 	Error _serialize_version(Ref<GLTFState> state);
 	Error _serialize_file(Ref<GLTFState> state, const String p_path);
-	Error _serialize_extensions(Ref<GLTFState> state) const;
+	Error _serialize_gltf_extensions(Ref<GLTFState> state) const;
 
 public:
 	// https://www.itu.int/rec/R-REC-BT.601

@@ -168,7 +168,7 @@ void FindInFiles::_iterate() {
 			String folder_name = folders_to_scan[folders_to_scan.size() - 1];
 			pop_back(folders_to_scan);
 
-			_current_dir = _current_dir.plus_file(folder_name);
+			_current_dir = _current_dir.path_join(folder_name);
 
 			PackedStringArray sub_dirs;
 			_scan_dir("res://" + _current_dir, sub_dirs);
@@ -246,7 +246,7 @@ void FindInFiles::_scan_dir(String path, PackedStringArray &out_folders) {
 		} else {
 			String file_ext = file.get_extension();
 			if (_extension_filter.has(file_ext)) {
-				_files_to_scan.push_back(path.plus_file(file));
+				_files_to_scan.push_back(path.path_join(file));
 			}
 		}
 	}
@@ -373,7 +373,7 @@ FindInFilesDialog::FindInFilesDialog() {
 
 	Label *filter_label = memnew(Label);
 	filter_label->set_text(TTR("Filters:"));
-	filter_label->set_tooltip(TTR("Include the files with the following extensions. Add or remove them in ProjectSettings."));
+	filter_label->set_tooltip_text(TTR("Include the files with the following extensions. Add or remove them in ProjectSettings."));
 	gc->add_child(filter_label);
 
 	_filters_container = memnew(HBoxContainer);
@@ -422,8 +422,7 @@ void FindInFilesDialog::set_find_in_files_mode(FindInFilesMode p_mode) {
 }
 
 String FindInFilesDialog::get_search_text() const {
-	String text = _search_text_line_edit->get_text();
-	return text.strip_edges();
+	return _search_text_line_edit->get_text();
 }
 
 String FindInFilesDialog::get_replace_text() const {
@@ -464,9 +463,9 @@ void FindInFilesDialog::_notification(int p_what) {
 				_search_text_line_edit->select_all();
 				// Extensions might have changed in the meantime, we clean them and instance them again.
 				for (int i = 0; i < _filters_container->get_child_count(); i++) {
-					_filters_container->get_child(i)->queue_delete();
+					_filters_container->get_child(i)->queue_free();
 				}
-				Array exts = ProjectSettings::get_singleton()->get("editor/script/search_in_file_extensions");
+				Array exts = GLOBAL_GET("editor/script/search_in_file_extensions");
 				for (int i = 0; i < exts.size(); ++i) {
 					CheckBox *cb = memnew(CheckBox);
 					cb->set_text(exts[i]);
@@ -764,8 +763,8 @@ void FindInFilesPanel::draw_result_text(Object *item_obj, Rect2 rect) {
 	int font_size = _results_display->get_theme_font_size(SNAME("font_size"));
 
 	Rect2 match_rect = rect;
-	match_rect.position.x += font->get_string_size(item_text.left(r.begin_trimmed), font_size).x;
-	match_rect.size.x = font->get_string_size(_search_text_label->get_text(), font_size).x;
+	match_rect.position.x += font->get_string_size(item_text.left(r.begin_trimmed), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x;
+	match_rect.size.x = font->get_string_size(_search_text_label->get_text(), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x;
 	match_rect.position.y += 1 * EDSCALE;
 	match_rect.size.y -= 2 * EDSCALE;
 
@@ -968,8 +967,8 @@ void FindInFilesPanel::update_replace_buttons() {
 	_replace_all_button->set_disabled(disabled);
 }
 
-void FindInFilesPanel::set_progress_visible(bool visible) {
-	_progress_bar->set_self_modulate(Color(1, 1, 1, visible ? 1 : 0));
+void FindInFilesPanel::set_progress_visible(bool p_visible) {
+	_progress_bar->set_self_modulate(Color(1, 1, 1, p_visible ? 1 : 0));
 }
 
 void FindInFilesPanel::_bind_methods() {

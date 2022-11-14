@@ -98,6 +98,13 @@ float GI::voxel_gi_get_energy(RID p_voxel_gi) const {
 	return 0.0;
 }
 
+void GI::voxel_gi_set_baked_exposure_normalization(RID p_voxel_gi, float p_baked_exposure) {
+}
+
+float GI::voxel_gi_get_baked_exposure_normalization(RID p_voxel_gi) const {
+	return 1.0;
+}
+
 void GI::voxel_gi_set_bias(RID p_voxel_gi, float p_range) {
 }
 
@@ -124,13 +131,6 @@ void GI::voxel_gi_set_use_two_bounces(RID p_voxel_gi, bool p_enable) {
 
 bool GI::voxel_gi_is_using_two_bounces(RID p_voxel_gi) const {
 	return false;
-}
-
-void GI::voxel_gi_set_anisotropy_strength(RID p_voxel_gi, float p_strength) {
-}
-
-float GI::voxel_gi_get_anisotropy_strength(RID p_voxel_gi) const {
-	return 0;
 }
 
 uint32_t GI::voxel_gi_get_version(RID p_voxel_gi) const {

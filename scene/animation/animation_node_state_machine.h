@@ -31,6 +31,7 @@
 #ifndef ANIMATION_NODE_STATE_MACHINE_H
 #define ANIMATION_NODE_STATE_MACHINE_H
 
+#include "core/math/expression.h"
 #include "scene/animation/animation_tree.h"
 
 class AnimationNodeStateMachineTransition : public Resource {
@@ -48,9 +49,14 @@ private:
 	bool auto_advance = false;
 	StringName advance_condition;
 	StringName advance_condition_name;
-	float xfade = 0.0;
+	float xfade_time = 0.0;
+	Ref<Curve> xfade_curve;
 	bool disabled = false;
 	int priority = 1;
+	String advance_expression;
+
+	friend class AnimationNodeStateMachinePlayback;
+	Ref<Expression> expression;
 
 protected:
 	static void _bind_methods();
@@ -67,8 +73,14 @@ public:
 
 	StringName get_advance_condition_name() const;
 
+	void set_advance_expression(const String &p_expression);
+	String get_advance_expression() const;
+
 	void set_xfade_time(float p_xfade);
 	float get_xfade_time() const;
+
+	void set_xfade_curve(const Ref<Curve> &p_curve);
+	Ref<Curve> get_xfade_curve() const;
 
 	void set_disabled(bool p_disabled);
 	bool is_disabled() const;
@@ -105,6 +117,7 @@ class AnimationNodeStateMachinePlayback : public Resource {
 
 	StringName current;
 	Transition current_transition;
+	Ref<Curve> current_curve;
 	bool force_auto_advance = false;
 
 	StringName fading_from;
@@ -173,7 +186,7 @@ private:
 
 	void _tree_changed();
 	void _remove_transition(const Ref<AnimationNodeStateMachineTransition> p_transition);
-	void _rename_transition(const StringName &p_name, const StringName &p_new_name);
+	void _rename_transitions(const StringName &p_name, const StringName &p_new_name);
 	bool _can_connect(const StringName &p_name, Vector<AnimationNodeStateMachine *> p_parents = Vector<AnimationNodeStateMachine *>());
 	StringName _get_shortest_path(const StringName &p_path) const;
 

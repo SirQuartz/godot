@@ -30,6 +30,8 @@
 
 #include "root_motion_editor_plugin.h"
 #include "editor/editor_node.h"
+#include "scene/animation/animation_player.h"
+#include "scene/animation/animation_tree.h"
 #include "scene/main/window.h"
 
 void EditorPropertyRootMotion::_confirmed() {
@@ -198,7 +200,7 @@ void EditorPropertyRootMotion::_node_clear() {
 void EditorPropertyRootMotion::update_property() {
 	NodePath p = get_edited_object()->get(get_edited_property());
 
-	assign->set_tooltip(p);
+	assign->set_tooltip_text(p);
 	if (p == NodePath()) {
 		assign->set_icon(Ref<Texture2D>());
 		assign->set_text(TTR("Assign..."));

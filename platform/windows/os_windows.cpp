@@ -48,10 +48,12 @@
 #include <avrt.h>
 #include <bcrypt.h>
 #include <direct.h>
+#include <dwrite.h>
 #include <knownfolders.h>
 #include <process.h>
 #include <regstr.h>
 #include <shlobj.h>
+#include <wbemcli.h>
 
 extern "C" {
 __declspec(dllexport) DWORD NvOptimusEnablement = 1;
@@ -101,8 +103,6 @@ void RedirectIOToConsole() {
 		RedirectStream("CONIN$", "r", stdin, STD_INPUT_HANDLE);
 		RedirectStream("CONOUT$", "w", stdout, STD_OUTPUT_HANDLE);
 		RedirectStream("CONOUT$", "w", stderr, STD_ERROR_HANDLE);
-
-		printf("\n"); // Make sure our output is starting from the new line.
 	}
 }
 
@@ -236,7 +236,7 @@ Error OS_Windows::open_dynamic_library(const String p_path, void *&p_library_han
 
 	if (!FileAccess::exists(path)) {
 		//this code exists so gdnative can load .dll files from within the executable path
-		path = get_executable_path().get_base_dir().plus_file(p_path.get_file());
+		path = get_executable_path().get_base_dir().path_join(p_path.get_file());
 	}
 
 	typedef DLL_DIRECTORY_COOKIE(WINAPI * PAddDllDirectory)(PCWSTR);
@@ -289,7 +289,123 @@ String OS_Windows::get_name() const {
 	return "Windows";
 }
 
-OS::Date OS_Windows::get_date(bool p_utc) const {
+String OS_Windows::get_distribution_name() const {
+	return get_name();
+}
+
+String OS_Windows::get_version() const {
+	typedef LONG NTSTATUS;
+	typedef NTSTATUS(WINAPI * RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
+	RtlGetVersionPtr version_ptr = (RtlGetVersionPtr)GetProcAddress(GetModuleHandle("ntdll.dll"), "RtlGetVersion");
+	if (version_ptr != nullptr) {
+		RTL_OSVERSIONINFOW fow;
+		ZeroMemory(&fow, sizeof(fow));
+		fow.dwOSVersionInfoSize = sizeof(fow);
+		if (version_ptr(&fow) == 0x00000000) {
+			return vformat("%d.%d.%d", (int64_t)fow.dwMajorVersion, (int64_t)fow.dwMinorVersion, (int64_t)fow.dwBuildNumber);
+		}
+	}
+	return "";
+}
+
+Vector<String> OS_Windows::get_video_adapter_driver_info() const {
+	if (RenderingServer::get_singleton()->get_rendering_device() == nullptr) {
+		return Vector<String>();
+	}
+
+	REFCLSID clsid = CLSID_WbemLocator; // Unmarshaler CLSID
+	REFIID uuid = IID_IWbemLocator; // Interface UUID
+	IWbemLocator *wbemLocator = NULL; // to get the services
+	IWbemServices *wbemServices = NULL; // to get the class
+	IEnumWbemClassObject *iter = NULL;
+	IWbemClassObject *pnpSDriverObject[1]; // contains driver name, version, etc.
+	static String driver_name;
+	static String driver_version;
+
+	const String device_name = RenderingServer::get_singleton()->get_rendering_device()->get_device_name();
+	if (device_name.is_empty()) {
+		return Vector<String>();
+	}
+
+	CoInitialize(nullptr);
+
+	HRESULT hr = CoCreateInstance(clsid, NULL, CLSCTX_INPROC_SERVER, uuid, (LPVOID *)&wbemLocator);
+	if (hr != S_OK) {
+		return Vector<String>();
+	}
+	BSTR resource_name = SysAllocString(L"root\\CIMV2");
+	hr = wbemLocator->ConnectServer(resource_name, NULL, NULL, NULL, 0, NULL, NULL, &wbemServices);
+	SysFreeString(resource_name);
+
+	SAFE_RELEASE(wbemLocator) // from now on, use `wbemServices`
+	if (hr != S_OK) {
+		SAFE_RELEASE(wbemServices)
+		return Vector<String>();
+	}
+
+	const String gpu_device_class_query = vformat("SELECT * FROM Win32_PnPSignedDriver WHERE DeviceName = \"%s\"", device_name);
+	BSTR query = SysAllocString((const WCHAR *)gpu_device_class_query.utf16().get_data());
+	BSTR query_lang = SysAllocString(L"WQL");
+	hr = wbemServices->ExecQuery(query_lang, query, WBEM_FLAG_RETURN_IMMEDIATELY | WBEM_FLAG_FORWARD_ONLY, NULL, &iter);
+	SysFreeString(query_lang);
+	SysFreeString(query);
+	if (hr == S_OK) {
+		ULONG resultCount;
+		hr = iter->Next(5000, 1, pnpSDriverObject, &resultCount); // Get exactly 1. Wait max 5 seconds.
+
+		if (hr == S_OK && resultCount > 0) {
+			VARIANT dn;
+			VariantInit(&dn);
+
+			BSTR object_name = SysAllocString(L"DriverName");
+			hr = pnpSDriverObject[0]->Get(object_name, 0, &dn, NULL, NULL);
+			SysFreeString(object_name);
+			if (hr == S_OK) {
+				String d_name = String(V_BSTR(&dn));
+				if (d_name.is_empty()) {
+					object_name = SysAllocString(L"DriverProviderName");
+					hr = pnpSDriverObject[0]->Get(object_name, 0, &dn, NULL, NULL);
+					SysFreeString(object_name);
+					if (hr == S_OK) {
+						driver_name = String(V_BSTR(&dn));
+					}
+				} else {
+					driver_name = d_name;
+				}
+			} else {
+				object_name = SysAllocString(L"DriverProviderName");
+				hr = pnpSDriverObject[0]->Get(object_name, 0, &dn, NULL, NULL);
+				SysFreeString(object_name);
+				if (hr == S_OK) {
+					driver_name = String(V_BSTR(&dn));
+				}
+			}
+
+			VARIANT dv;
+			VariantInit(&dv);
+			object_name = SysAllocString(L"DriverVersion");
+			hr = pnpSDriverObject[0]->Get(object_name, 0, &dv, NULL, NULL);
+			SysFreeString(object_name);
+			if (hr == S_OK) {
+				driver_version = String(V_BSTR(&dv));
+			}
+			for (ULONG i = 0; i < resultCount; i++) {
+				SAFE_RELEASE(pnpSDriverObject[i])
+			}
+		}
+	}
+
+	SAFE_RELEASE(wbemServices)
+	SAFE_RELEASE(iter)
+
+	Vector<String> info;
+	info.push_back(driver_name);
+	info.push_back(driver_version);
+
+	return info;
+}
+
+OS::DateTime OS_Windows::get_datetime(bool p_utc) const {
 	SYSTEMTIME systemtime;
 	if (p_utc) {
 		GetSystemTime(&systemtime);
@@ -304,28 +420,16 @@ OS::Date OS_Windows::get_date(bool p_utc) const {
 		daylight = true;
 	}
 
-	Date date;
-	date.day = systemtime.wDay;
-	date.month = Month(systemtime.wMonth);
-	date.weekday = Weekday(systemtime.wDayOfWeek);
-	date.year = systemtime.wYear;
-	date.dst = daylight;
-	return date;
-}
-
-OS::Time OS_Windows::get_time(bool p_utc) const {
-	SYSTEMTIME systemtime;
-	if (p_utc) {
-		GetSystemTime(&systemtime);
-	} else {
-		GetLocalTime(&systemtime);
-	}
-
-	Time time;
-	time.hour = systemtime.wHour;
-	time.minute = systemtime.wMinute;
-	time.second = systemtime.wSecond;
-	return time;
+	DateTime dt;
+	dt.year = systemtime.wYear;
+	dt.month = Month(systemtime.wMonth);
+	dt.day = systemtime.wDay;
+	dt.weekday = Weekday(systemtime.wDayOfWeek);
+	dt.hour = systemtime.wHour;
+	dt.minute = systemtime.wMinute;
+	dt.second = systemtime.wSecond;
+	dt.dst = daylight;
+	return dt;
 }
 
 OS::TimeZoneInfo OS_Windows::get_time_zone_info() const {
@@ -621,6 +725,135 @@ Error OS_Windows::set_cwd(const String &p_cwd) {
 	return OK;
 }
 
+Vector<String> OS_Windows::get_system_fonts() const {
+	Vector<String> ret;
+	HashSet<String> font_names;
+
+	ComAutoreleaseRef<IDWriteFactory> dwrite_factory;
+	HRESULT hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown **>(&dwrite_factory.reference));
+	ERR_FAIL_COND_V(FAILED(hr) || dwrite_factory.is_null(), ret);
+
+	ComAutoreleaseRef<IDWriteFontCollection> font_collection;
+	hr = dwrite_factory->GetSystemFontCollection(&font_collection.reference, false);
+	ERR_FAIL_COND_V(FAILED(hr) || font_collection.is_null(), ret);
+
+	UINT32 family_count = font_collection->GetFontFamilyCount();
+	for (UINT32 i = 0; i < family_count; i++) {
+		ComAutoreleaseRef<IDWriteFontFamily> family;
+		hr = font_collection->GetFontFamily(i, &family.reference);
+		ERR_CONTINUE(FAILED(hr) || family.is_null());
+
+		ComAutoreleaseRef<IDWriteLocalizedStrings> family_names;
+		hr = family->GetFamilyNames(&family_names.reference);
+		ERR_CONTINUE(FAILED(hr) || family_names.is_null());
+
+		UINT32 index = 0;
+		BOOL exists = false;
+		UINT32 length = 0;
+		Char16String name;
+
+		hr = family_names->FindLocaleName(L"en-us", &index, &exists);
+		ERR_CONTINUE(FAILED(hr));
+
+		hr = family_names->GetStringLength(index, &length);
+		ERR_CONTINUE(FAILED(hr));
+
+		name.resize(length + 1);
+		hr = family_names->GetString(index, (WCHAR *)name.ptrw(), length + 1);
+		ERR_CONTINUE(FAILED(hr));
+
+		font_names.insert(String::utf16(name.ptr(), length));
+	}
+
+	for (const String &E : font_names) {
+		ret.push_back(E);
+	}
+	return ret;
+}
+
+String OS_Windows::get_system_font_path(const String &p_font_name, bool p_bold, bool p_italic) const {
+	String font_name = p_font_name;
+	if (font_name.to_lower() == "sans-serif") {
+		font_name = "Arial";
+	} else if (font_name.to_lower() == "serif") {
+		font_name = "Times New Roman";
+	} else if (font_name.to_lower() == "monospace") {
+		font_name = "Courier New";
+	} else if (font_name.to_lower() == "cursive") {
+		font_name = "Comic Sans MS";
+	} else if (font_name.to_lower() == "fantasy") {
+		font_name = "Gabriola";
+	}
+
+	ComAutoreleaseRef<IDWriteFactory> dwrite_factory;
+	HRESULT hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown **>(&dwrite_factory.reference));
+	ERR_FAIL_COND_V(FAILED(hr) || dwrite_factory.is_null(), String());
+
+	ComAutoreleaseRef<IDWriteFontCollection> font_collection;
+	hr = dwrite_factory->GetSystemFontCollection(&font_collection.reference, false);
+	ERR_FAIL_COND_V(FAILED(hr) || font_collection.is_null(), String());
+
+	UINT32 index = 0;
+	BOOL exists = false;
+	font_collection->FindFamilyName((const WCHAR *)font_name.utf16().get_data(), &index, &exists);
+	if (FAILED(hr)) {
+		return String();
+	}
+
+	ComAutoreleaseRef<IDWriteFontFamily> family;
+	hr = font_collection->GetFontFamily(index, &family.reference);
+	if (FAILED(hr) || family.is_null()) {
+		return String();
+	}
+
+	ComAutoreleaseRef<IDWriteFont> dwrite_font;
+	hr = family->GetFirstMatchingFont(p_bold ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STRETCH_NORMAL, p_italic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL, &dwrite_font.reference);
+	if (FAILED(hr) || dwrite_font.is_null()) {
+		return String();
+	}
+
+	ComAutoreleaseRef<IDWriteFontFace> dwrite_face;
+	hr = dwrite_font->CreateFontFace(&dwrite_face.reference);
+	if (FAILED(hr) || dwrite_face.is_null()) {
+		return String();
+	}
+
+	UINT32 number_of_files = 0;
+	hr = dwrite_face->GetFiles(&number_of_files, nullptr);
+	if (FAILED(hr)) {
+		return String();
+	}
+	Vector<ComAutoreleaseRef<IDWriteFontFile>> files;
+	files.resize(number_of_files);
+	hr = dwrite_face->GetFiles(&number_of_files, (IDWriteFontFile **)files.ptrw());
+	if (FAILED(hr)) {
+		return String();
+	}
+
+	for (UINT32 i = 0; i < number_of_files; i++) {
+		void const *reference_key = nullptr;
+		UINT32 reference_key_size = 0;
+		ComAutoreleaseRef<IDWriteLocalFontFileLoader> loader;
+
+		hr = files.write[i]->GetLoader((IDWriteFontFileLoader **)&loader.reference);
+		if (FAILED(hr) || loader.is_null()) {
+			continue;
+		}
+		hr = files.write[i]->GetReferenceKey(&reference_key, &reference_key_size);
+		if (FAILED(hr)) {
+			continue;
+		}
+
+		WCHAR file_path[MAX_PATH];
+		hr = loader->GetFilePathFromKey(reference_key, reference_key_size, &file_path[0], MAX_PATH);
+		if (FAILED(hr)) {
+			continue;
+		}
+		return String::utf16((const char16_t *)&file_path[0]);
+	}
+	return String();
+}
+
 String OS_Windows::get_executable_path() const {
 	WCHAR bufname[4096];
 	GetModuleFileNameW(nullptr, bufname, 4096);
@@ -734,17 +967,6 @@ BOOL is_wow64() {
 	return wow64;
 }
 
-int OS_Windows::get_processor_count() const {
-	SYSTEM_INFO sysinfo;
-	if (is_wow64()) {
-		GetNativeSystemInfo(&sysinfo);
-	} else {
-		GetSystemInfo(&sysinfo);
-	}
-
-	return sysinfo.dwNumberOfProcessors;
-}
-
 String OS_Windows::get_processor_name() const {
 	const String id = "Hardware\\Description\\System\\CentralProcessor\\0";
 
@@ -772,7 +994,7 @@ void OS_Windows::run() {
 
 	main_loop->initialize();
 
-	while (!force_quit) {
+	while (true) {
 		DisplayServer::get_singleton()->process_events(); // get rid of pending events
 		if (Main::iteration()) {
 			break;
@@ -933,31 +1155,38 @@ String OS_Windows::get_system_dir(SystemDir p_dir, bool p_shared_storage) const 
 }
 
 String OS_Windows::get_user_data_dir() const {
-	String appname = get_safe_dir_name(ProjectSettings::get_singleton()->get("application/config/name"));
+	String appname = get_safe_dir_name(GLOBAL_GET("application/config/name"));
 	if (!appname.is_empty()) {
-		bool use_custom_dir = ProjectSettings::get_singleton()->get("application/config/use_custom_user_dir");
+		bool use_custom_dir = GLOBAL_GET("application/config/use_custom_user_dir");
 		if (use_custom_dir) {
-			String custom_dir = get_safe_dir_name(ProjectSettings::get_singleton()->get("application/config/custom_user_dir_name"), true);
+			String custom_dir = get_safe_dir_name(GLOBAL_GET("application/config/custom_user_dir_name"), true);
 			if (custom_dir.is_empty()) {
 				custom_dir = appname;
 			}
-			return get_data_path().plus_file(custom_dir).replace("\\", "/");
+			return get_data_path().path_join(custom_dir).replace("\\", "/");
 		} else {
-			return get_data_path().plus_file(get_godot_dir_name()).plus_file("app_userdata").plus_file(appname).replace("\\", "/");
+			return get_data_path().path_join(get_godot_dir_name()).path_join("app_userdata").path_join(appname).replace("\\", "/");
 		}
 	}
 
-	return get_data_path().plus_file(get_godot_dir_name()).plus_file("app_userdata").plus_file("[unnamed project]");
+	return get_data_path().path_join(get_godot_dir_name()).path_join("app_userdata").path_join("[unnamed project]");
 }
 
 String OS_Windows::get_unique_id() const {
-	HW_PROFILE_INFO HwProfInfo;
-	ERR_FAIL_COND_V(!GetCurrentHwProfile(&HwProfInfo), "");
-	return String::utf16((const char16_t *)(HwProfInfo.szHwProfileGuid), HW_PROFILE_GUIDLEN);
+	HW_PROFILE_INFOA HwProfInfo;
+	ERR_FAIL_COND_V(!GetCurrentHwProfileA(&HwProfInfo), "");
+	return String((HwProfInfo.szHwProfileGuid), HW_PROFILE_GUIDLEN);
 }
 
 bool OS_Windows::_check_internal_feature_support(const String &p_feature) {
-	return p_feature == "pc";
+	if (p_feature == "system_fonts") {
+		return true;
+	}
+	if (p_feature == "pc") {
+		return true;
+	}
+
+	return false;
 }
 
 void OS_Windows::disable_crash_handler() {
@@ -997,17 +1226,7 @@ Error OS_Windows::move_to_trash(const String &p_path) {
 }
 
 OS_Windows::OS_Windows(HINSTANCE _hInstance) {
-	ticks_per_second = 0;
-	ticks_start = 0;
-	main_loop = nullptr;
-	process_map = nullptr;
-
-	force_quit = false;
-
 	hInstance = _hInstance;
-#ifdef STDOUT_FILE
-	stdo = fopen("stdout.txt", "wb");
-#endif
 
 #ifdef WASAPI_ENABLED
 	AudioDriverManager::add_driver(&driver_wasapi);
@@ -1018,13 +1237,22 @@ OS_Windows::OS_Windows(HINSTANCE _hInstance) {
 
 	DisplayServerWindows::register_windows_driver();
 
+	// Enable ANSI escape code support on Windows 10 v1607 (Anniversary Update) and later.
+	// This lets the engine and projects use ANSI escape codes to color text just like on macOS and Linux.
+	//
+	// NOTE: The engine does not use ANSI escape codes to color error/warning messages; it uses Windows API calls instead.
+	// Therefore, error/warning messages are still colored on Windows versions older than 10.
+	HANDLE stdoutHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+	DWORD outMode = ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+	if (!SetConsoleMode(stdoutHandle, outMode)) {
+		// Windows 8.1 or below, or Windows 10 prior to Anniversary Update.
+		print_verbose("Can't set the ENABLE_VIRTUAL_TERMINAL_PROCESSING Windows console mode. `print_rich()` will not work as expected.");
+	}
+
 	Vector<Logger *> loggers;
 	loggers.push_back(memnew(WindowsTerminalLogger));
 	_set_logger(memnew(CompositeLogger(loggers)));
 }
 
 OS_Windows::~OS_Windows() {
-#ifdef STDOUT_FILE
-	fclose(stdo);
-#endif
 }

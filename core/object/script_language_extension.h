@@ -82,9 +82,10 @@ public:
 		GDVIRTUAL_REQUIRED_CALL(_get_documentation, doc);
 
 		Vector<DocData::ClassDoc> class_doc;
-#ifndef _MSC_VER
-#warning missing conversion from documentation to ClassDoc
-#endif
+		for (int i = 0; i < doc.size(); i++) {
+			class_doc.append(DocData::ClassDoc::from_dict(doc[i]));
+		}
+
 		return class_doc;
 	}
 #endif // TOOLS_ENABLED
@@ -173,28 +174,12 @@ public:
 
 	EXBIND0RC(bool, is_placeholder_fallback_enabled)
 
-	GDVIRTUAL0RC(TypedArray<Dictionary>, _get_rpc_methods)
+	GDVIRTUAL0RC(Variant, _get_rpc_config)
 
-	virtual const Vector<Multiplayer::RPCConfig> get_rpc_methods() const override {
-		TypedArray<Dictionary> ret;
-		GDVIRTUAL_REQUIRED_CALL(_get_rpc_methods, ret);
-		Vector<Multiplayer::RPCConfig> rpcret;
-		for (int i = 0; i < ret.size(); i++) {
-			Dictionary d = ret[i];
-			Multiplayer::RPCConfig rpc;
-			ERR_CONTINUE(!d.has("name"));
-			rpc.name = d["name"];
-			ERR_CONTINUE(!d.has("rpc_mode"));
-			rpc.rpc_mode = Multiplayer::RPCMode(int(d["rpc_mode"]));
-			ERR_CONTINUE(!d.has("call_local"));
-			rpc.call_local = d["call_local"];
-			ERR_CONTINUE(!d.has("transfer_mode"));
-			rpc.transfer_mode = Multiplayer::TransferMode(int(d["transfer_mode"]));
-			ERR_CONTINUE(!d.has("channel"));
-			rpc.channel = d["channel"];
-			rpcret.push_back(rpc);
-		}
-		return rpcret;
+	virtual const Variant get_rpc_config() const override {
+		Variant ret;
+		GDVIRTUAL_REQUIRED_CALL(_get_rpc_config, ret);
+		return ret;
 	}
 
 	ScriptExtension() {}
@@ -580,6 +565,15 @@ public:
 			p_constants->push_back(Pair<String, Variant>(d["name"], d["value"]));
 		}
 	}
+	GDVIRTUAL0RC(TypedArray<Dictionary>, _get_public_annotations)
+	virtual void get_public_annotations(List<MethodInfo> *p_annotations) const override {
+		TypedArray<Dictionary> ret;
+		GDVIRTUAL_REQUIRED_CALL(_get_public_annotations, ret);
+		for (int i = 0; i < ret.size(); i++) {
+			MethodInfo mi = MethodInfo::from_dict(ret[i]);
+			p_annotations->push_back(mi);
+		}
+	}
 
 	EXBIND0(profiling_start)
 	EXBIND0(profiling_stop)
@@ -670,8 +664,16 @@ public:
 		if (native_info->get_property_list_func) {
 			uint32_t pcount;
 			const GDNativePropertyInfo *pinfo = native_info->get_property_list_func(instance, &pcount);
+
+#ifdef TOOLS_ENABLED
+			Ref<Script> script = get_script();
+			if (script->is_valid() && pcount > 0) {
+				p_list->push_back(script->get_class_category());
+			}
+#endif // TOOLS_ENABLED
+
 			for (uint32_t i = 0; i < pcount; i++) {
-				p_list->push_back(PropertyInfo(Variant::Type(pinfo[i].type), pinfo[i].class_name, PropertyHint(pinfo[i].hint), pinfo[i].hint_string, pinfo[i].usage, pinfo[i].class_name));
+				p_list->push_back(PropertyInfo(pinfo[i]));
 			}
 			if (native_info->free_property_list_func) {
 				native_info->free_property_list_func(instance, pinfo);
@@ -685,10 +687,22 @@ public:
 			if (r_is_valid) {
 				*r_is_valid = is_valid != 0;
 			}
-
 			return Variant::Type(type);
 		}
 		return Variant::NIL;
+	}
+
+	virtual bool property_can_revert(const StringName &p_name) const override {
+		if (native_info->property_can_revert_func) {
+			return native_info->property_can_revert_func(instance, (const GDNativeStringNamePtr)&p_name);
+		}
+		return false;
+	}
+	virtual bool property_get_revert(const StringName &p_name, Variant &r_ret) const override {
+		if (native_info->property_get_revert_func) {
+			return native_info->property_get_revert_func(instance, (const GDNativeStringNamePtr)&p_name, (GDNativeVariantPtr)&r_ret);
+		}
+		return false;
 	}
 
 	virtual Object *get_owner() override {
@@ -712,19 +726,7 @@ public:
 			uint32_t mcount;
 			const GDNativeMethodInfo *minfo = native_info->get_method_list_func(instance, &mcount);
 			for (uint32_t i = 0; i < mcount; i++) {
-				MethodInfo m;
-				m.name = minfo[i].name;
-				m.flags = minfo[i].flags;
-				m.id = minfo[i].id;
-				m.return_val = PropertyInfo(Variant::Type(minfo[i].return_value.type), minfo[i].return_value.class_name, PropertyHint(minfo[i].return_value.hint), minfo[i].return_value.hint_string, minfo[i].return_value.usage, minfo[i].return_value.class_name);
-				for (uint32_t j = 0; j < minfo[i].argument_count; j++) {
-					m.arguments.push_back(PropertyInfo(Variant::Type(minfo[i].arguments[j].type), minfo[i].arguments[j].class_name, PropertyHint(minfo[i].arguments[j].hint), minfo[i].arguments[j].hint_string, minfo[i].arguments[j].usage, minfo[i].arguments[j].class_name));
-				}
-				const Variant *def_values = (const Variant *)minfo[i].default_arguments;
-				for (uint32_t j = 0; j < minfo[i].default_argument_count; j++) {
-					m.default_arguments.push_back(def_values[j]);
-				}
-				p_list->push_back(m);
+				p_list->push_back(MethodInfo(minfo[i]));
 			}
 			if (native_info->free_method_list_func) {
 				native_info->free_method_list_func(instance, minfo);
@@ -758,7 +760,8 @@ public:
 	virtual String to_string(bool *r_valid) override {
 		if (native_info->to_string_func) {
 			GDNativeBool valid;
-			String ret = native_info->to_string_func(instance, &valid);
+			String ret;
+			native_info->to_string_func(instance, &valid, reinterpret_cast<GDNativeStringPtr>(&ret));
 			if (r_valid) {
 				*r_valid = valid != 0;
 			}

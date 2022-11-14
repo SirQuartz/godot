@@ -22,13 +22,14 @@
 # Ram Tourgeman <ramtorgeman@gmail.com>, 2021.
 # Shailee Eliyahu <dev.sle.il@gmail.com>, 2021.
 # Mati Borlak <matiborlak@gmail.com>, 2022.
+# Tamir Livneh <fkeyzuwu@gmail.com>, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: Godot Engine editor\n"
 "Report-Msgid-Bugs-To: https://github.com/godotengine/godot\n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2022-06-08 06:48+0000\n"
-"Last-Translator: Mati Borlak <matiborlak@gmail.com>\n"
+"PO-Revision-Date: 2022-09-05 11:17+0000\n"
+"Last-Translator: Tamir Livneh <fkeyzuwu@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/godot-engine/"
 "godot/he/>\n"
 "Language: he\n"
@@ -37,7 +38,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=(n == 1) ? 0 : ((n == 2) ? 1 : ((n > 10 && "
 "n % 10 == 0) ? 2 : 3));\n"
-"X-Generator: Weblate 4.13-dev\n"
+"X-Generator: Weblate 4.14.1-dev\n"
 
 #: core/bind/core_bind.cpp main/main.cpp
 msgid "Tablet Driver"
@@ -423,6 +424,11 @@ msgstr ""
 msgid "Command"
 msgstr "פיקוד"
 
+#: core/os/input_event.cpp
+#, fuzzy
+msgid "Physical"
+msgstr "פיזיקה"
+
 #: core/os/input_event.cpp scene/2d/touch_screen_button.cpp
 #: scene/gui/base_button.cpp scene/gui/texture_button.cpp
 #: scene/resources/default_theme/default_theme.cpp
@@ -476,6 +482,10 @@ msgstr ""
 #: core/os/input_event.cpp
 msgid "Pressure"
 msgstr "לחץ"
+
+#: core/os/input_event.cpp
+msgid "Pen Inverted"
+msgstr ""
 
 #: core/os/input_event.cpp
 #, fuzzy
@@ -2158,14 +2168,15 @@ msgstr "מועדפים:"
 msgid "Recent:"
 msgstr "אחרונים:"
 
-#: editor/create_dialog.cpp editor/plugins/script_editor_plugin.cpp
-#: editor/property_selector.cpp editor/quick_open.cpp editor/rename_dialog.cpp
+#: editor/create_dialog.cpp editor/editor_quick_open.cpp
+#: editor/plugins/script_editor_plugin.cpp editor/property_selector.cpp
+#: editor/rename_dialog.cpp
 #: modules/visual_script/visual_script_property_selector.cpp
 msgid "Search:"
 msgstr "חיפוש:"
 
-#: editor/create_dialog.cpp editor/plugins/script_editor_plugin.cpp
-#: editor/property_selector.cpp editor/quick_open.cpp
+#: editor/create_dialog.cpp editor/editor_quick_open.cpp
+#: editor/plugins/script_editor_plugin.cpp editor/property_selector.cpp
 #: modules/visual_script/visual_script_property_selector.cpp
 msgid "Matches:"
 msgstr "התאמות:"
@@ -2225,8 +2236,8 @@ msgstr "חיפוש משאב חלופי:"
 
 #: editor/dependency_editor.cpp editor/editor_file_dialog.cpp
 #: editor/editor_help_search.cpp editor/editor_node.cpp
-#: editor/filesystem_dock.cpp editor/plugins/script_editor_plugin.cpp
-#: editor/property_selector.cpp editor/quick_open.cpp
+#: editor/editor_quick_open.cpp editor/filesystem_dock.cpp
+#: editor/plugins/script_editor_plugin.cpp editor/property_selector.cpp
 #: editor/script_create_dialog.cpp
 #: modules/visual_script/visual_script_property_selector.cpp
 #: scene/gui/file_dialog.cpp
@@ -2797,7 +2808,7 @@ msgstr ""
 
 #: editor/editor_export.cpp
 #, fuzzy
-msgid "Completed with errors."
+msgid "Completed with warnings."
 msgstr "העתקת נתיב המפרק"
 
 #: editor/editor_export.cpp
@@ -4535,6 +4546,7 @@ msgstr "כלים שונים למיזם או למגוון סצנות."
 
 #: editor/editor_node.cpp editor/project_manager.cpp
 #: editor/script_create_dialog.cpp modules/mono/editor/csharp_project.cpp
+#: modules/mono/godotsharp_dirs.cpp
 msgid "Project"
 msgstr "מיזם"
 
@@ -5016,7 +5028,7 @@ msgstr "יוצרים"
 #: editor/editor_plugin_settings.cpp
 #: modules/gdnative/gdnative_library_singleton_editor.cpp
 msgid "Status"
-msgstr ""
+msgstr "מצב"
 
 #: editor/editor_profiler.cpp
 msgid "Measure:"
@@ -5081,9 +5093,8 @@ msgid "Profiler Frame Max Functions"
 msgstr "שינוי שם פונקציה"
 
 #: editor/editor_properties.cpp
-#, fuzzy
 msgid "Edit Text:"
-msgstr "חברים"
+msgstr "ערוך טקסט:"
 
 #: editor/editor_properties.cpp editor/script_create_dialog.cpp
 #: scene/resources/default_theme/default_theme.cpp
@@ -5095,7 +5106,7 @@ msgstr ""
 #: scene/3d/collision_object.cpp scene/3d/soft_body.cpp
 #: scene/main/canvas_layer.cpp
 msgid "Layer"
-msgstr ""
+msgstr "שכבה"
 
 #: editor/editor_properties.cpp
 msgid "Bit %d, value %d"
@@ -5150,19 +5161,19 @@ msgstr ""
 #: editor/editor_properties_array_dict.cpp
 #: editor/plugins/theme_editor_plugin.cpp
 msgid "Remove Item"
-msgstr ""
+msgstr "הסר פריט"
 
 #: editor/editor_properties_array_dict.cpp
 msgid "New Key:"
-msgstr ""
+msgstr "מפתח חדש:"
 
 #: editor/editor_properties_array_dict.cpp
 msgid "New Value:"
-msgstr ""
+msgstr "ערך חדש:"
 
 #: editor/editor_properties_array_dict.cpp
 msgid "Add Key/Value Pair"
-msgstr ""
+msgstr "הוסף זוג מפתח/ערך"
 
 #: editor/editor_resource_picker.cpp
 msgid ""
@@ -5176,7 +5187,7 @@ msgstr ""
 
 #: editor/editor_resource_picker.cpp editor/property_editor.cpp
 msgid "Make Unique"
-msgstr ""
+msgstr "הפוך לייחודי"
 
 #: editor/editor_resource_picker.cpp
 #: editor/plugins/animation_blend_space_1d_editor.cpp
@@ -5190,7 +5201,7 @@ msgstr ""
 #: editor/plugins/tile_map_editor_plugin.cpp editor/property_editor.cpp
 #: editor/scene_tree_dock.cpp scene/gui/line_edit.cpp scene/gui/text_edit.cpp
 msgid "Paste"
-msgstr "הדבקה"
+msgstr "הדבק"
 
 #: editor/editor_resource_picker.cpp editor/property_editor.cpp
 #, fuzzy
@@ -5223,7 +5234,7 @@ msgstr "הפעלה"
 
 #: editor/editor_resource_picker.cpp editor/property_editor.cpp
 msgid "New Script"
-msgstr ""
+msgstr "סקריפט חדש"
 
 #: editor/editor_resource_picker.cpp editor/scene_tree_dock.cpp
 #, fuzzy
@@ -5554,6 +5565,15 @@ msgstr ""
 
 #: editor/editor_settings.cpp
 msgid "Mouse Extra Buttons Navigate History"
+msgstr ""
+
+#: editor/editor_settings.cpp
+#, fuzzy
+msgid "Drag And Drop Selection"
+msgstr "GridMap מילוי הבחירה"
+
+#: editor/editor_settings.cpp
+msgid "Stay In Script Editor On Node Selected"
 msgstr ""
 
 #: editor/editor_settings.cpp
@@ -7455,7 +7475,8 @@ msgid "8 Bit"
 msgstr ""
 
 #: editor/import/resource_importer_wav.cpp main/main.cpp
-#: modules/mono/editor/csharp_project.cpp modules/mono/mono_gd/gd_mono.cpp
+#: modules/mono/editor/csharp_project.cpp modules/mono/godotsharp_dirs.cpp
+#: modules/mono/mono_gd/gd_mono.cpp
 msgid "Mono"
 msgstr ""
 
@@ -8059,8 +8080,17 @@ msgid "New Anim"
 msgstr "הנפשה חדשה"
 
 #: editor/plugins/animation_player_editor_plugin.cpp
+msgid "Create New Animation"
+msgstr "יצירת הנפשה חדשה"
+
+#: editor/plugins/animation_player_editor_plugin.cpp
 msgid "Change Animation Name:"
 msgstr "שינוי שם הנפשה:"
+
+#: editor/plugins/animation_player_editor_plugin.cpp
+#: editor/plugins/sprite_frames_editor_plugin.cpp
+msgid "Rename Animation"
+msgstr "שינוי שם הנפשה"
 
 #: editor/plugins/animation_player_editor_plugin.cpp
 #: editor/plugins/sprite_frames_editor_plugin.cpp
@@ -8079,11 +8109,6 @@ msgstr "שם הנפשה לא חוקי!"
 #: editor/plugins/animation_player_editor_plugin.cpp
 msgid "Animation name already exists!"
 msgstr "שם ההנפשה כבר קיים!"
-
-#: editor/plugins/animation_player_editor_plugin.cpp
-#: editor/plugins/sprite_frames_editor_plugin.cpp
-msgid "Rename Animation"
-msgstr "שינוי שם הנפשה"
 
 #: editor/plugins/animation_player_editor_plugin.cpp
 msgid "Duplicate Animation"
@@ -8227,10 +8252,6 @@ msgstr "הכללת גיזמו (3D)"
 #: editor/plugins/animation_player_editor_plugin.cpp
 msgid "Pin AnimationPlayer"
 msgstr "הצמדת AnimationPlayer"
-
-#: editor/plugins/animation_player_editor_plugin.cpp
-msgid "Create New Animation"
-msgstr "יצירת הנפשה חדשה"
 
 #: editor/plugins/animation_player_editor_plugin.cpp
 msgid "Animation Name:"
@@ -11945,6 +11966,11 @@ msgstr "שם הנפשה חדשה:"
 
 #: editor/plugins/sprite_frames_editor_plugin.cpp
 #, fuzzy
+msgid "Filter animations"
+msgstr "מאפייני פריט."
+
+#: editor/plugins/sprite_frames_editor_plugin.cpp
+#, fuzzy
 msgid "Speed:"
 msgstr "מהירות (FPS):"
 
@@ -15653,18 +15679,19 @@ msgstr ""
 msgid "Make Local"
 msgstr "הפיכה למקומי"
 
-#: editor/scene_tree_dock.cpp editor/scene_tree_editor.cpp
-msgid "Another node already uses this unique name in the scene."
-msgstr ""
+#: editor/scene_tree_dock.cpp
+#, fuzzy
+msgid "Enable Scene Unique Name(s)"
+msgstr "שם המפרק:"
 
 #: editor/scene_tree_dock.cpp
 #, fuzzy
-msgid "Enable Scene Unique Name"
-msgstr "שם המפרק:"
+msgid "Unique names already used by another node in the scene:"
+msgstr "השם כבר בשימוש של פונקציה/משתנה/אות אחר:"
 
-#: editor/scene_tree_dock.cpp editor/scene_tree_editor.cpp
+#: editor/scene_tree_dock.cpp
 #, fuzzy
-msgid "Disable Scene Unique Name"
+msgid "Disable Scene Unique Name(s)"
 msgstr "שם המפרק:"
 
 #: editor/scene_tree_dock.cpp
@@ -15858,6 +15885,11 @@ msgid "Button Group"
 msgstr "קבוצת לחצנים"
 
 #: editor/scene_tree_editor.cpp
+#, fuzzy
+msgid "Disable Scene Unique Name"
+msgstr "שם המפרק:"
+
+#: editor/scene_tree_editor.cpp
 msgid "(Connecting From)"
 msgstr "(מתחבר מ)"
 
@@ -15931,6 +15963,10 @@ msgstr ""
 #: editor/scene_tree_editor.cpp
 msgid "Invalid node name, the following characters are not allowed:"
 msgstr "שם מפרק לא חוקי, התווים הבאים אינם מותרים:"
+
+#: editor/scene_tree_editor.cpp
+msgid "Another node already uses this unique name in the scene."
+msgstr ""
 
 #: editor/scene_tree_editor.cpp
 msgid "Rename Node"
@@ -17840,6 +17876,21 @@ msgstr "מילוי הבחירה"
 msgid "Auto Update Project"
 msgstr "ייצוא מיזם"
 
+#: modules/mono/godotsharp_dirs.cpp
+#, fuzzy
+msgid "Assembly Name"
+msgstr "הצג הכל"
+
+#: modules/mono/godotsharp_dirs.cpp
+#, fuzzy
+msgid "Solution Directory"
+msgstr "נא לבחור תיקייה"
+
+#: modules/mono/godotsharp_dirs.cpp
+#, fuzzy
+msgid "C# Project Directory"
+msgstr "נא לבחור תיקייה"
+
 #: modules/mono/mono_gd/gd_mono_utils.cpp
 msgid "End of inner exception stack trace"
 msgstr "סוף מחסנית מעקב לחריגה פנימית"
@@ -18932,6 +18983,11 @@ msgid "The package must have at least one '.' separator."
 msgstr "החבילה חייבת לכלול לפחות מפריד '.' אחד."
 
 #: platform/android/export/export_plugin.cpp
+#, fuzzy
+msgid "Custom Build"
+msgstr "גזירת מפרקים"
+
+#: platform/android/export/export_plugin.cpp
 msgid "Use Custom Build"
 msgstr ""
 
@@ -18939,6 +18995,16 @@ msgstr ""
 #, fuzzy
 msgid "Export Format"
 msgstr "ייצוא מיזם"
+
+#: platform/android/export/export_plugin.cpp
+#, fuzzy
+msgid "Min SDK"
+msgstr "מבט קדמי"
+
+#: platform/android/export/export_plugin.cpp
+#, fuzzy
+msgid "Target SDK"
+msgstr "נתיב המשאב"
 
 #: platform/android/export/export_plugin.cpp platform/iphone/export/export.cpp
 #, fuzzy
@@ -18979,16 +19045,6 @@ msgstr "בדיקת המופע הקודם"
 #: platform/android/export/export_plugin.cpp
 msgid "Code"
 msgstr ""
-
-#: platform/android/export/export_plugin.cpp
-#, fuzzy
-msgid "Min SDK"
-msgstr "מבט קדמי"
-
-#: platform/android/export/export_plugin.cpp
-#, fuzzy
-msgid "Target SDK"
-msgstr "נתיב המשאב"
 
 #: platform/android/export/export_plugin.cpp platform/uwp/export/export.cpp
 #, fuzzy
@@ -19244,13 +19300,13 @@ msgstr "חובה לאפשר ״שימוש בבניה מותאמת אישית״ כ
 #: platform/android/export/export_plugin.cpp
 #, fuzzy
 msgid ""
-"\"Hand Tracking\" is only valid when \"Xr Mode\" is \"Oculus Mobile VrApi\" "
+"\"Hand Tracking\" is only valid when \"XR Mode\" is \"Oculus Mobile VrApi\" "
 "or \"OpenXR\"."
 msgstr "\"Hand Tracking\" תקף רק כאשר \"מצב Xr\" הוא \"Oculus Mobile VR\"."
 
 #: platform/android/export/export_plugin.cpp
 #, fuzzy
-msgid "\"Passthrough\" is only valid when \"Xr Mode\" is \"OpenXR\"."
+msgid "\"Passthrough\" is only valid when \"XR Mode\" is \"OpenXR\"."
 msgstr "\"Hand Tracking\" תקף רק כאשר \"מצב Xr\" הוא \"Oculus Mobile VR\"."
 
 #: platform/android/export/export_plugin.cpp
@@ -19259,17 +19315,37 @@ msgstr ""
 
 #: platform/android/export/export_plugin.cpp
 msgid ""
-"Changing the \"Min Sdk\" is only valid when \"Use Custom Build\" is enabled."
+"\"Min SDK\" can only be overridden when \"Use Custom Build\" is enabled."
+msgstr ""
+
+#: platform/android/export/export_plugin.cpp
+msgid "\"Min SDK\" should be a valid integer, but got \"%s\" which is invalid."
 msgstr ""
 
 #: platform/android/export/export_plugin.cpp
 msgid ""
-"Changing the \"Target Sdk\" is only valid when \"Use Custom Build\" is "
-"enabled."
+"\"Min SDK\" cannot be lower than %d, which is the version needed by the "
+"Godot library."
 msgstr ""
 
 #: platform/android/export/export_plugin.cpp
-msgid "\"Target Sdk\" version must be greater or equal to \"Min Sdk\" version."
+msgid ""
+"\"Target SDK\" can only be overridden when \"Use Custom Build\" is enabled."
+msgstr ""
+
+#: platform/android/export/export_plugin.cpp
+msgid ""
+"\"Target SDK\" should be a valid integer, but got \"%s\" which is invalid."
+msgstr ""
+
+#: platform/android/export/export_plugin.cpp
+msgid ""
+"\"Target SDK\" %d is higher than the default version %d. This may work, but "
+"wasn't tested and may be unstable."
+msgstr ""
+
+#: platform/android/export/export_plugin.cpp
+msgid "\"Target SDK\" version must be greater or equal to \"Min SDK\" version."
 msgstr ""
 
 #: platform/android/export/export_plugin.cpp platform/osx/export/export.cpp
@@ -19666,6 +19742,11 @@ msgstr "גזירת מפרקים"
 #, fuzzy
 msgid "Custom BG Color"
 msgstr "גזירת מפרקים"
+
+#: platform/iphone/export/export.cpp
+#, fuzzy
+msgid "Export Icons"
+msgstr "להרחיב הכול"
 
 #: platform/iphone/export/export.cpp platform/javascript/export/export.cpp
 #: platform/osx/export/export.cpp
@@ -20518,6 +20599,12 @@ msgid "Show Name On Square 310 X 310"
 msgstr ""
 
 #: platform/uwp/export/export.cpp
+msgid ""
+"Godot's Mono version does not support the UWP platform. Use the standard "
+"build (no C# support) if you wish to target UWP."
+msgstr ""
+
+#: platform/uwp/export/export.cpp
 msgid "Invalid package short name."
 msgstr "שם קצר של חבילה לא חוקי."
 
@@ -20658,15 +20745,15 @@ msgstr "לא ניתן לפתוח תבנית לייצוא:"
 
 #: platform/windows/export/export.cpp
 msgid ""
-"Could not start rcedit executable, configure rcedit path in the Editor "
-"Settings (Export > Windows > Rcedit)."
+"Could not start rcedit executable. Configure rcedit path in the Editor "
+"Settings (Export > Windows > Rcedit), or disable \"Application > Modify "
+"Resources\" in the export preset."
 msgstr ""
 
 #: platform/windows/export/export.cpp
-msgid ""
-"rcedit failed to modify executable:\n"
-"%s"
-msgstr ""
+#, fuzzy
+msgid "rcedit failed to modify executable: %s."
+msgstr "סיומת לא חוקית."
 
 #: platform/windows/export/export.cpp
 #, fuzzy
@@ -20690,15 +20777,15 @@ msgstr "שם שגוי."
 
 #: platform/windows/export/export.cpp
 msgid ""
-"Could not start signtool executable, configure signtool path in the Editor "
-"Settings (Export > Windows > Signtool)."
+"Could not start signtool executable. Configure signtool path in the Editor "
+"Settings (Export > Windows > Signtool), or disable \"Codesign\" in the "
+"export preset."
 msgstr ""
 
 #: platform/windows/export/export.cpp
-msgid ""
-"Signtool failed to sign executable:\n"
-"%s"
-msgstr ""
+#, fuzzy
+msgid "Signtool failed to sign executable: %s."
+msgstr "סיומת לא חוקית."
 
 #: platform/windows/export/export.cpp
 #, fuzzy
@@ -20942,7 +21029,7 @@ msgstr "התקרבות"
 msgid "Custom Viewport"
 msgstr "מבט תחתי"
 
-#: scene/2d/camera_2d.cpp scene/3d/camera.cpp
+#: scene/2d/camera_2d.cpp scene/3d/camera.cpp scene/3d/interpolated_camera.cpp
 #: scene/animation/animation_player.cpp scene/animation/animation_tree.cpp
 #: scene/animation/animation_tree_player.cpp scene/main/timer.cpp
 #, fuzzy
@@ -21676,9 +21763,41 @@ msgstr ""
 msgid "Edge Connection Margin"
 msgstr "עריכת חיבור:"
 
+#: scene/2d/navigation_2d.cpp
+msgid ""
+"'Navigation2D' node and 'Navigation2D.get_simple_path()' are deprecated and "
+"will be removed in a future version. Use 'Navigation2DServer.map_get_path()' "
+"instead."
+msgstr ""
+
+#: scene/2d/navigation_agent_2d.cpp scene/3d/navigation_agent.cpp
+#, fuzzy
+msgid "Pathfinding"
+msgstr "קישור"
+
+#: scene/2d/navigation_agent_2d.cpp scene/3d/navigation_agent.cpp
+#, fuzzy
+msgid "Path Desired Distance"
+msgstr "בחירת מרחק:"
+
 #: scene/2d/navigation_agent_2d.cpp scene/3d/navigation_agent.cpp
 msgid "Target Desired Distance"
 msgstr ""
+
+#: scene/2d/navigation_agent_2d.cpp scene/3d/navigation_agent.cpp
+#, fuzzy
+msgid "Path Max Distance"
+msgstr "בחירת מרחק:"
+
+#: scene/2d/navigation_agent_2d.cpp scene/3d/navigation_agent.cpp
+#, fuzzy
+msgid "Avoidance"
+msgstr "מתקדם"
+
+#: scene/2d/navigation_agent_2d.cpp scene/3d/navigation_agent.cpp
+#, fuzzy
+msgid "Avoidance Enabled"
+msgstr "הפעלה"
 
 #: scene/2d/navigation_agent_2d.cpp scene/3d/navigation_agent.cpp
 msgid "Neighbor Dist"
@@ -21696,16 +21815,6 @@ msgstr ""
 #, fuzzy
 msgid "Max Speed"
 msgstr "מהירות (FPS):"
-
-#: scene/2d/navigation_agent_2d.cpp scene/3d/navigation_agent.cpp
-#, fuzzy
-msgid "Path Max Distance"
-msgstr "בחירת מרחק:"
-
-#: scene/2d/navigation_agent_2d.cpp scene/3d/navigation_agent.cpp
-#, fuzzy
-msgid "Avoidance Enabled"
-msgstr "הפעלה"
 
 #: scene/2d/navigation_agent_2d.cpp
 msgid ""
@@ -21751,7 +21860,7 @@ msgstr "טיול"
 msgid "Rotation Degrees"
 msgstr "הטיה של %s מעלות."
 
-#: scene/2d/node_2d.cpp
+#: scene/2d/node_2d.cpp scene/3d/spatial.cpp
 #, fuzzy
 msgid "Global Rotation"
 msgstr "קבוע"
@@ -22927,6 +23036,13 @@ msgstr ""
 msgid "Transform Normals"
 msgstr "התמרה"
 
+#: scene/3d/navigation.cpp
+msgid ""
+"'Navigation' node and 'Navigation.get_simple_path()' are deprecated and will "
+"be removed in a future version. Use 'NavigationServer.map_get_path()' "
+"instead."
+msgstr ""
+
 #: scene/3d/navigation.cpp scene/resources/curve.cpp
 #, fuzzy
 msgid "Up Vector"
@@ -23824,6 +23940,11 @@ msgid ""
 msgstr ""
 "שינויים בגודל ל-SoftBody יבוטלו על ידי מנוע הפיזיקה בזמן ריצה.\n"
 "במקום זאת יש לשנות את גודל צורות ההתנגשות של הצאצאים."
+
+#: scene/3d/spatial.cpp
+#, fuzzy
+msgid "Global Translation"
+msgstr "התמרה"
 
 #: scene/3d/spatial.cpp
 msgid "Matrix"
@@ -25055,6 +25176,11 @@ msgstr "יצירת תיקייה"
 
 #: scene/gui/text_edit.cpp
 #, fuzzy
+msgid "Drag And Drop Selection Enabled"
+msgstr "בחירה בלבד"
+
+#: scene/gui/text_edit.cpp
+#, fuzzy
 msgid "Hiding Enabled"
 msgstr "הפעלה"
 
@@ -25457,22 +25583,20 @@ msgid "Viewport Path"
 msgstr "ייצוא מיזם"
 
 #: scene/main/viewport.cpp
-msgid ""
-"This viewport is not set as render target. If you intend for it to display "
-"its contents directly to the screen, make it a child of a Control so it can "
-"obtain a size. Otherwise, make it a RenderTarget and assign its internal "
-"texture to some node for display."
-msgstr ""
-"חלון תצוגה זה אינו מוגדר כיעד עיבוד. להצגת התוכן ישירות למסך, יש להפוך אותו "
-"לצאצא של בקר כדי שיקבל גודל. או להפוך אותו ל-RenderTarget ולשייך את המרקם "
-"הפנימי שלו למפרק כלשהו לתצוגה."
-
-#: scene/main/viewport.cpp
 #, fuzzy
 msgid ""
 "The Viewport size must be greater than or equal to 2 pixels on both "
 "dimensions to render anything."
 msgstr "גודל חלון התצוגה חייב להיות גדול מ-0 על מנת להציג משהו."
+
+#: scene/main/viewport.cpp
+msgid ""
+"This Viewport has HDR enabled, but its Usage is set to 2D or 2D No-"
+"Sampling.\n"
+"HDR is only supported in Viewports that have their Usage set to 3D or 3D No-"
+"Effects.\n"
+"HDR will be disabled for this Viewport."
+msgstr ""
 
 #: scene/main/viewport.cpp
 msgid "ARVR"
@@ -27219,6 +27343,15 @@ msgstr ""
 #: scene/resources/navigation_mesh.cpp
 msgid "Walkable Low Height Spans"
 msgstr ""
+
+#: scene/resources/navigation_mesh.cpp
+msgid "Baking AABB"
+msgstr ""
+
+#: scene/resources/navigation_mesh.cpp
+#, fuzzy
+msgid "Baking AABB Offset"
+msgstr "היסט רשת:"
 
 #: scene/resources/occluder_shape.cpp
 msgid "Spheres"
