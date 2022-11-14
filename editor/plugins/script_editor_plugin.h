@@ -283,6 +283,8 @@ class ScriptEditor : public PanelContainer {
 	Button *scripts_visible = nullptr;
 	FindReplaceBar *find_replace_bar = nullptr;
 
+	bool window_floating = false;
+
 	String current_theme;
 
 	TextureRect *script_icon = nullptr;

@@ -1544,23 +1544,7 @@ void ScriptEditor::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE: {
 			EditorNode::get_singleton()->connect("stop_pressed", callable_mp(this, &ScriptEditor::_editor_stop));
-			EditorNode::get_singleton()->connect("script_add_function_request", callable_mp(this, &ScriptEditor::_add_callback));
-			EditorNode::get_singleton()->connect("resource_saved", callable_mp(this, &ScriptEditor::_res_saved_callback));
-			EditorNode::get_singleton()->connect("scene_saved", callable_mp(this, &ScriptEditor::_scene_saved_callback));
-			FileSystemDock::get_singleton()->connect("files_moved", callable_mp(this, &ScriptEditor::_files_moved));
-			FileSystemDock::get_singleton()->connect("file_removed", callable_mp(this, &ScriptEditor::_file_removed));
-			script_list->connect("item_selected", callable_mp(this, &ScriptEditor::_script_selected));
-
-			members_overview->connect("item_selected", callable_mp(this, &ScriptEditor::_members_overview_selected));
-			help_overview->connect("item_selected", callable_mp(this, &ScriptEditor::_help_overview_selected));
-			script_split->connect("dragged", callable_mp(this, &ScriptEditor::_split_dragged));
-			list_split->connect("dragged", callable_mp(this, &ScriptEditor::_split_dragged));
-
-			EditorSettings::get_singleton()->connect("settings_changed", callable_mp(this, &ScriptEditor::_editor_settings_changed));
-			EditorFileSystem::get_singleton()->connect("filesystem_changed", callable_mp(this, &ScriptEditor::_filesystem_changed));
-			_editor_settings_changed();
-			[[fallthrough]];
-		}
+		} break;
 		case NOTIFICATION_TRANSLATION_CHANGED:
 		case NOTIFICATION_LAYOUT_DIRECTION_CHANGED:
 		case NOTIFICATION_THEME_CHANGED: {
@@ -1594,6 +1578,22 @@ void ScriptEditor::_notification(int p_what) {
 			get_tree()->connect("tree_changed", callable_mp(this, &ScriptEditor::_tree_changed));
 			InspectorDock::get_singleton()->connect("request_help", callable_mp(this, &ScriptEditor::_help_class_open));
 			EditorNode::get_singleton()->connect("request_help_search", callable_mp(this, &ScriptEditor::_help_search));
+			EditorNode::get_singleton()->connect("script_add_function_request", callable_mp(this, &ScriptEditor::_add_callback));
+			EditorNode::get_singleton()->connect("resource_saved", callable_mp(this, &ScriptEditor::_res_saved_callback));
+			EditorNode::get_singleton()->connect("scene_saved", callable_mp(this, &ScriptEditor::_scene_saved_callback));
+			FileSystemDock::get_singleton()->connect("files_moved", callable_mp(this, &ScriptEditor::_files_moved));
+			FileSystemDock::get_singleton()->connect("file_removed", callable_mp(this, &ScriptEditor::_file_removed));
+			script_list->connect("item_selected", callable_mp(this, &ScriptEditor::_script_selected));
+
+			members_overview->connect("item_selected", callable_mp(this, &ScriptEditor::_members_overview_selected));
+			help_overview->connect("item_selected", callable_mp(this, &ScriptEditor::_help_overview_selected));
+			script_split->connect("dragged", callable_mp(this, &ScriptEditor::_split_dragged));
+			list_split->connect("dragged", callable_mp(this, &ScriptEditor::_split_dragged));
+
+			EditorSettings::get_singleton()->connect("settings_changed", callable_mp(this, &ScriptEditor::_editor_settings_changed));
+			EditorFileSystem::get_singleton()->connect("filesystem_changed", callable_mp(this, &ScriptEditor::_filesystem_changed));
+			_editor_settings_changed();
+			[[fallthrough]];
 		} break;
 
 		case NOTIFICATION_EXIT_TREE: {
@@ -3505,6 +3505,8 @@ void ScriptEditor::_script_changed() {
 	NodeDock::get_singleton()->update_lists();
 }
 
+bool return_control = true;
+
 void ScriptEditor::_on_float_window_requested() {
 	Control *base_editor = script_editor;
 
@@ -3516,16 +3518,18 @@ void ScriptEditor::_on_float_window_requested() {
 	window->set_title("Script Editor");
 	// Set the window size to the current script editor size
 	window->set_size(base_editor->get_size());
-	EditorNode::get_singleton()->get_main_control()->remove_child(script_editor);
-	base_editor->set_anchors_and_offsets_preset(LayoutPreset::PRESET_WIDE);
+	EditorNode::get_singleton()->get_main_screen_control()->remove_child(script_editor);
+	base_editor->set_anchors_and_offsets_preset(LayoutPreset::PRESET_FULL_RECT);
 	// Add the script editor to the window
 	window->add_child(base_editor);
-	window->set_wrap_controls(true);
+	
 	window->set_position(script_window_pos); // Set the window position to match where the script editor is
-	window->set_transient(true);
-	window->connect("close_requested", callable_mp(this, &ScriptEditor::_script_floating_close_request), varray(base_editor));
+	window->connect("close_requested", callable_mp(this, &ScriptEditor::_script_floating_close_request).bind(base_editor));
 	// Add the window to the editor
+	return_control = false;
+	float_window->hide();
 	EditorNode::get_singleton()->get_gui_base()->add_child(window);
+	window->grab_focus();
 }
 
 void ScriptEditor::_script_floating_close_request(Control *p_control) {
@@ -3534,9 +3538,19 @@ void ScriptEditor::_script_floating_close_request(Control *p_control) {
 	// Then remove the script editor from the window
 	window->remove_child(p_control);
 	// Next, add it back to the main window GUI
-	EditorNode::get_singleton()->get_main_control()->add_child(p_control);
+	
+	return_control = true;
+	
+	EditorNode::get_singleton()->get_main_screen_control()->add_child(p_control);
+	
+	script_editor->hide();
+	script_editor->show();
+	EditorNode::get_singleton()->editor_select(EditorNode::EDITOR_SCRIPT);
+	float_window->show();
+	
 	// Now we can close the sub-window
-	window->queue_delete();
+	window->queue_free();
+	
 }
 
 void ScriptEditor::_on_find_in_files_requested(String text) {
@@ -3845,9 +3859,9 @@ ScriptEditor::ScriptEditor() {
 	float_window = memnew(Button);
 	float_window->set_flat(true);
 	float_window->set_text(TTR("Float Window"));
-	float_window->connect("pressed", callable_mp(this, &ScriptEditor::_menu_option), varray(FLOAT_WINDOW));
+	float_window->connect("pressed", callable_mp(this, &ScriptEditor::_menu_option).bind(FLOAT_WINDOW));
 	menu_hb->add_child(float_window);
-	float_window->set_tooltip(TTR("Make script editor a floating window."));
+	float_window->set_tooltip_text(TTR("Make script editor a floating window."));
 
 	EditorDebuggerNode *debugger = EditorDebuggerNode::get_singleton();
 	debugger->set_script_debug_button(debug_menu_btn);
@@ -4024,7 +4038,7 @@ void ScriptEditorPlugin::make_visible(bool p_visible) {
 		script_editor->show();
 		script_editor->set_process(true);
 		script_editor->ensure_select_current();
-	} else {
+	} else if (return_control == true && p_visible == false) {
 		script_editor->hide();
 		script_editor->set_process(false);
 	}
