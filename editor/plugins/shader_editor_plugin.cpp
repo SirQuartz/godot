@@ -305,6 +305,53 @@ void ShaderEditorPlugin::_menu_item_pressed(int p_index) {
 	}
 }
 
+bool return_main_control = true;
+
+void ShaderEditorPlugin::_on_float_window_requested() {
+	HSplitContainer *base_editor = main_split;
+	
+	// Script editor current position
+	Point2 script_window_pos = base_editor->get_global_position() + get_tree()->get_root()->get_position();
+
+	// Create a new window
+	Window *window = memnew(Window);
+	window->set_title("Shader Editor");
+	// Set the window size to the current script editor size
+	window->set_size(base_editor->get_size());
+	base_editor->get_parent()->remove_child(base_editor);
+	// Add the script editor to the window
+	window->add_child(base_editor);
+	base_editor->set_anchors_and_offsets_preset(Control::PRESET_FULL_RECT);
+	window->set_position(script_window_pos); // Set the window position to match where the script editor is
+	window->connect("close_requested", callable_mp(this, &ShaderEditorPlugin::_on_float_window_close_requested).bind(base_editor));
+	// Add the window to the editor
+	return_main_control = false;
+	float_window->hide();
+	EditorNode::get_singleton()->get_gui_base()->add_child(window);
+	window->grab_focus();
+}
+
+void ShaderEditorPlugin::_on_float_window_close_requested(Control *p_control) {
+	// First, get the floating script editor window
+	Window *window = static_cast<Window *>(p_control->get_parent());
+	// Then remove the script editor from the window
+	window->remove_child(p_control);
+	// Next, add it back to the main window GUI
+
+	return_main_control = true;
+
+	EditorNode::get_singleton()->remove_bottom_panel_item(p_control);
+	EditorNode::get_singleton()->add_bottom_panel_item(TTR("Shader Editor"), p_control);
+	EditorNode::get_singleton()->make_bottom_panel_item_visible(p_control);
+
+	main_split->hide();
+	main_split->show();
+	float_window->show();
+
+	// Now we can close the sub-window
+	window->queue_free();
+}
+
 void ShaderEditorPlugin::_shader_created(Ref<Shader> p_shader) {
 	EditorNode::get_singleton()->push_item(p_shader.ptr());
 }
@@ -439,6 +486,11 @@ ShaderEditorPlugin::ShaderEditorPlugin() {
 	file_menu->get_popup()->connect("id_pressed", callable_mp(this, &ShaderEditorPlugin::_menu_item_pressed));
 	file_hb->add_child(file_menu);
 
+	float_window = memnew(Button);
+	float_window->set_text(TTR("Float Window"));
+	float_window->connect("pressed", callable_mp(this, &ShaderEditorPlugin::_on_float_window_requested));
+	file_hb->add_child(float_window);
+	
 	for (int i = FILE_SAVE; i < FILE_MAX; i++) {
 		file_menu->get_popup()->set_item_disabled(file_menu->get_popup()->get_item_index(i), true);
 	}

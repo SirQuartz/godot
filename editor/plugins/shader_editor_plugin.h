@@ -72,6 +72,7 @@ class ShaderEditorPlugin : public EditorPlugin {
 	TabContainer *shader_tabs = nullptr;
 
 	Button *button = nullptr;
+	Button *float_window = nullptr;
 	MenuButton *file_menu = nullptr;
 
 	ShaderCreateDialog *shader_create_dialog = nullptr;
@@ -87,6 +88,8 @@ class ShaderEditorPlugin : public EditorPlugin {
 	void _shader_include_created(Ref<ShaderInclude> p_shader_inc);
 	void _update_shader_list_status();
 	void _move_shader_tab(int p_from, int p_to);
+	void _on_float_window_requested();
+	void _on_float_window_close_requested(Control *p_control);
 
 	Variant get_drag_data_fw(const Point2 &p_point, Control *p_from);
 	bool can_drop_data_fw(const Point2 &p_point, const Variant &p_data, Control *p_from) const;
