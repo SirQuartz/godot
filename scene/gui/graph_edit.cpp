@@ -444,6 +444,7 @@ void GraphEdit::remove_child_notify(Node *p_child) {
 		if (minimap != nullptr && minimap->is_inside_tree()) {
 			gn->disconnect("item_rect_changed", callable_mp((CanvasItem *)minimap, &GraphEditMinimap::queue_redraw));
 		}
+		minimap->queue_redraw();
 	}
 }
 
