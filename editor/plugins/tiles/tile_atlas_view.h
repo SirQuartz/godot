@@ -35,6 +35,7 @@
 #include "scene/gui/box_container.h"
 #include "scene/gui/button.h"
 #include "scene/gui/center_container.h"
+#include "scene/gui/color_picker.h"
 #include "scene/gui/label.h"
 #include "scene/gui/margin_container.h"
 #include "scene/resources/2d/tile_set.h"
